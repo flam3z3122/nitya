@@ -4,6 +4,82 @@
 @tailwind utilities;
 
 :root { font-family: 'DM Sans', sans-serif; color: #1c2828; background: #f7f9f7; font-synthesis: none; --ink: #1c2828; --muted: #71807e; --line: #e5ebe8; --green: #4f9c80; --green-dark: #26705d; --soft-green: #e9f4ee; --cream: #fffdf8; }
+
+/* Dark theme variables applied when `dark` class is present on <html> */
+.dark { color: #e6efe9; --ink: #e6efe9; --muted: #93a79a; --line: #19302b; --green: #67b389; --green-dark: #3fa074; --soft-green: #07261f; --cream: #07110f; background: #071018; }
+.dark body { background: #071018; }
+.dark .auth-card, .dark .goal-card, .dark .calendar-card, .dark .stats-card, .dark .profile-card, .dark .settings-card, .dark .habit-card, .dark .task-card, .dark .chart-card, .dark .consistency-card, .dark .quick-add-menu { background: #07141a; border-color: var(--line); color: var(--ink); }
+
+/* Additional dark mode overrides to cover remaining light styles */
+.dark .page-content { background: transparent; }
+.dark .button-light { background: transparent; border-color: rgba(255,255,255,0.06); color: var(--ink); }
+.dark .icon-button { background: #07141a; border-color: rgba(255,255,255,0.04); color: var(--muted); }
+.dark .header-actions { color: var(--muted); }
+.dark .eyebrow { color: var(--muted); }
+.dark .eyebrow.light { color: #7aa78f; }
+.dark .setting-row { background: transparent; border-bottom-color: rgba(255,255,255,0.03); }
+.dark .setting-row:hover { background: rgba(255,255,255,0.02); }
+.dark .setting-icon { background: transparent; color: var(--muted); }
+.dark .setting-value { color: var(--muted); }
+.dark .setting-option { background: transparent; color: var(--ink); }
+.dark .setting-option.active { background: rgba(63,160,116,0.12); color: var(--green); }
+.dark .member-pill { background: rgba(63,160,116,0.08); color: var(--green); }
+.dark .progress-card { background: linear-gradient(135deg, #184b3f 0%, #0f352b 100%); }
+.dark .quote-card { background: #08221a; color: #bfe0cf; }
+.dark .streak-card { background: #071816; border-color: rgba(255,255,255,0.03); }
+.dark .goal-card, .dark .stats-card { background: #07141a; }
+.dark .task-card, .dark .habit-card { background: #07141a; border-color: rgba(255,255,255,0.03); }
+.dark .calendar-day { background: transparent; color: var(--muted); }
+.dark .calendar-day.selected { color: #07141a; background: var(--green); }
+.dark .calendar-day.has-activity:not(.selected) i { background: #d98c57; }
+.dark .data-warning { background: #2b1b18; color: #ffd6c9; border-color: rgba(255,255,255,0.04); }
+
+/* Bottom nav should adapt to dark theme */
+.dark .bottom-nav { background: rgba(7,16,24,0.9); border-top-color: rgba(255,255,255,0.04); }
+.dark .bottom-nav button { color: #86b79f; }
+.dark .bottom-nav button.active { color: var(--green); }
+
+/* Quick add and menus */
+.dark .quick-add { background: #c97743; }
+.dark .quick-add-menu { background: #07141a; box-shadow: 0 16px 35px #00000080; }
+
+/* Misc text colors */
+.dark p, .dark h1, .dark h2, .dark strong, .dark span, .dark small { color: var(--ink); }
+
+/* Goal card/icon */
+.dark .goal-card { background: #07141a; border-color: rgba(255,255,255,0.03); }
+.dark .goal-icon { background: rgba(103,179,137,0.08); color: var(--green); }
+
+/* Category and priority pills */
+.dark .category-pill { color: #9fbfae; background: rgba(255,255,255,0.02); }
+.dark .priority { background: rgba(255,255,255,0.02); color: #f0c6a9; }
+.dark .priority-high { background: rgba(255,200,200,0.04); color: #ffb3a8; }
+.dark .priority-low { background: rgba(150,200,170,0.04); color: #9fd1b3; }
+
+/* Habit color variants (make them subtle in dark) */
+.dark .habit-mint { color: #67b389; background: rgba(103,179,137,0.06); }
+.dark .habit-peach { color: #c27c52; background: rgba(194,124,82,0.04); }
+.dark .habit-blue { color: #548da3; background: rgba(84,141,163,0.04); }
+.dark .habit-lavender { color: #907f9f; background: rgba(144,127,159,0.04); }
+
+/* Day detail under calendar */
+.dark .day-detail { background: #071816; border-color: rgba(255,255,255,0.03); color: var(--ink); }
+.dark .detail-item { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+/* Make small UI elements visible */
+.dark .goal-title, .dark .task-meta, .dark .habit-meta, .dark .task-title, .dark .habit-name { color: var(--ink); }
+
+/* Habits page: mini stat cards and intro area */
+.dark .subpage-intro { background: transparent; }
+.dark .subpage-intro .mini-stat { background: #07141a; border-color: rgba(255,255,255,0.03); color: var(--ink); }
+.dark .mini-stat-icon { background: rgba(255,255,255,0.02); color: var(--green); }
+.dark .filter-row { color: var(--muted); }
+.dark .filter { background: transparent; color: var(--muted); border: 1px solid rgba(255,255,255,0.02); }
+.dark .filter.active { background: rgba(63,160,116,0.08); color: var(--green); }
+
+/* Make the small 'New habit' button match dark theme */
+.dark .page-header .button { background: rgba(255,255,255,0.03); color: var(--ink); border: 1px solid rgba(255,255,255,0.04); }
+
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #f7f9f7; }
 button { border: 0; font: inherit; cursor: pointer; color: inherit; }
@@ -40,9 +116,7 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #fff; border: 1px solid var(--line); color: #60706d; transition: .2s ease; }
 .icon-button:hover { transform: translateY(-1px); border-color: #c4d7ce; color: var(--green-dark); }
-.icon-button.subtle { width: 30px; height: 30px; border: 0; background: transparent; }
-.notification-button { position: relative; }
-.notification-button i { position: absolute; right: 9px; top: 8px; height: 5px; width: 5px; border-radius: 50%; background: #dd8a58; border: 1px solid #fff; }
+icon-button.subtle { width: 30px; height: 30px; border: 0; background: transparent; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 11px; min-height: 40px; padding: 0 15px; font-size: 13px; font-weight: 700; transition: .2s ease; }
 .button span { font-size: 19px; font-weight: 400; line-height: 0; }
 .button-dark { background: var(--ink); color: #fff; box-shadow: 0 5px 12px #1c282818; }

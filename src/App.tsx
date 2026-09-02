@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { QuickAdd } from '@/components/QuickAdd';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -14,6 +14,11 @@ function App() {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
+  useEffect(() => {
+    const mode = data.profile?.theme ?? 'Light';
+    if (mode === 'Dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [data.profile?.theme]);
 
   if (auth.loading) {
     return <div className="loading-screen"><div className="loading-spinner" /><p>Loading your daymark\u2026</p></div>;
