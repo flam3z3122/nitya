@@ -15,7 +15,7 @@ function getGreeting() { const hour = new Date().getHours(); if (hour < 12) retu
 
 function formatDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase(); }
 
-export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions"><button className="icon-button notification-button" aria-label="Notifications"><Bell size={19} /><i /></button>{action}</div></header>; }
+export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
 export function TodayPage({ tasks, habits, onToggleTask, onToggleHabit, onNavigate, onQuickAdd, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
