@@ -19,6 +19,11 @@ export type Habit = {
   completed: boolean;
 };
 
+export type Goal = {
+  id: string;
+  title: string;
+};
+
 export type ProfileSettings = {
   name: string;
   email: string;
@@ -30,6 +35,7 @@ export type ProfileSettings = {
 export type DataState = {
   tasks: Task[];
   habits: Habit[];
+  goals: Goal[];
   completions: string[];
   profile: ProfileSettings | null;
   loading: boolean;

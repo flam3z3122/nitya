@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { DataState, Habit, ProfileSettings, Task } from '@/types';
+import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
 type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string };
+type GoalRow = { id: string; title: string };
 type CompletionRow = { habit_id: string; completed_on: string };
 
-const initialState: DataState = { tasks: [], habits: [], completions: [], profile: null, loading: true, error: null };
+const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null };
 
 function calculateStreak(habitId: string, completions: CompletionRow[]): number {
   const dates = new Set(completions.filter((item) => item.habit_id === habitId).map((item) => item.completed_on));
@@ -45,16 +46,18 @@ export function useProductivityData(userId: string | null) {
     if (!userId) { setState({ ...initialState, loading: false }); return; }
     setState((current) => ({ ...current, loading: true, error: null }));
     await ensureWelcomeTask();
-    const [tasksResult, habitsResult, completionsResult, profileResult] = await Promise.all([
+    const [tasksResult, habitsResult, goalsResult, completionsResult, profileResult] = await Promise.all([
       supabase.from('tasks').select('id, title, category, priority, due_label, completed').order('created_at', { ascending: true }),
       supabase.from('habits').select('id, name, icon, color, frequency').order('created_at', { ascending: true }),
+      supabase.from('goals').select('id, title').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
       supabase.auth.getSession().then(({ data }) => data.session?.user ?? null),
     ]);
-    const failure = tasksResult.error ?? habitsResult.error ?? completionsResult.error;
+    const failure = tasksResult.error ?? habitsResult.error ?? goalsResult.error ?? completionsResult.error;
     if (failure) { setState((current) => ({ ...current, loading: false, error: toFriendlyError(failure.message) })); return; }
     const taskRows = (tasksResult.data ?? []) as TaskRow[];
     const habitRows = (habitsResult.data ?? []) as HabitRow[];
+    const goalRows = (goalsResult.data ?? []) as GoalRow[];
     const completionRows = (completionsResult.data ?? []) as CompletionRow[];
     const today = new Date().toISOString().slice(0, 10);
     const sessionUser = profileResult as { id: string; email: string } | null;
@@ -62,6 +65,7 @@ export function useProductivityData(userId: string | null) {
     setState({
       tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime' })),
       habits: habitRows.map((habit) => ({ ...habit, completed: completionRows.some((item) => item.habit_id === habit.id && item.completed_on === today), streak: calculateStreak(habit.id, completionRows) })),
+      goals: goalRows.map((goal) => ({ id: goal.id, title: goal.title })),
       completions: completionRows.map((item) => item.completed_on),
       profile,
       loading: false,
@@ -94,8 +98,10 @@ export function useProductivityData(userId: string | null) {
   }, []);
 
   const createGoal = useCallback(async (title: string) => {
-    const { error } = await supabase.from('goals').insert({ title });
-    if (error) throw new Error('Goal could not be created.');
+    const { data, error } = await supabase.from('goals').insert({ title }).select('id, title').maybeSingle();
+    if (error || !data) throw new Error('Goal could not be created.');
+    const goal = data as GoalRow;
+    setState((current) => ({ ...current, goals: [...current.goals, { id: goal.id, title: goal.title }] }));
   }, []);
 
   const createHabit = useCallback(async (name: string) => {
