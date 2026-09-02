@@ -4,10 +4,11 @@ import { calendarDays } from '@/data';
 import { HabitCard } from '@/components/HabitCard';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
+import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
-import type { Habit, ProfileSettings, Screen, Task } from '@/types';
+import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
-type TodayProps = { tasks: Task[]; habits: Habit[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: () => void; userName?: string };
+type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: () => void; userName?: string };
 
 const pageMeta: Record<Screen, { eyebrow: string; title: string }> = { today: { eyebrow: '', title: '' }, habits: { eyebrow: 'YOUR ROUTINES', title: 'Habits' }, calendar: { eyebrow: 'YOUR HISTORY', title: 'Calendar' }, statistics: { eyebrow: 'YOUR MOMENTUM', title: 'Statistics' }, profile: { eyebrow: 'YOUR SPACE', title: 'Profile' } };
 
@@ -17,16 +18,26 @@ function formatDate() { return new Date().toLocaleDateString('en-US', { weekday:
 
 export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
-export function TodayPage({ tasks, habits, onToggleTask, onToggleHabit, onNavigate, onQuickAdd, userName }: TodayProps) {
+export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onNavigate, onQuickAdd, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const visibleTasks = tasks.slice(0, 3);
   const remainingTasks = Math.max(0, tasks.length - visibleTasks.length);
   return (
     <div className="page-content">
-      <PageHeader screen="today" userName={userName} action={<button className="desktop-add button button-dark" onClick={onQuickAdd}><span>+</span> Add new</button>} />
+      <PageHeader screen="today" userName={userName} />
       <div className="today-layout">
         <div className="today-main">
           <ProgressCard completed={completed} total={tasks.length + habits.length} />
+          {goals.length > 0 && (
+            <section className="content-section">
+              <div className="section-heading">
+                <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
+              </div>
+              <div className="goal-list">
+                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} />)}
+              </div>
+            </section>
+          )}
           <section className="content-section">
             <div className="section-heading">
               <div><p className="eyebrow">FOCUS FOR TODAY</p><h2>Today&apos;s tasks</h2></div>
