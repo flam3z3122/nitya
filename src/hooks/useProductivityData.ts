@@ -25,9 +25,9 @@ function toFriendlyError(message: string): string {
 }
 
 async function ensureProfile(userId: string, email: string): Promise<ProfileSettings | null> {
-  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme, notifications_enabled, timezone').eq('user_id', userId).maybeSingle();
+  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme').eq('user_id', userId).maybeSingle();
   if (existing) return existing as ProfileSettings;
-  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme, notifications_enabled, timezone').maybeSingle();
+  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme').maybeSingle();
   if (error || !created) return null;
   return created as ProfileSettings;
 }
@@ -111,7 +111,7 @@ export function useProductivityData(userId: string | null) {
     setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
   }, []);
 
-  const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
+  const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => {
     if (!userId) return;
     const { error } = await supabase.from('profile_settings').update({ ...updates, updated_at: new Date().toISOString() }).eq('user_id', userId);
     if (error) { setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' })); return; }
