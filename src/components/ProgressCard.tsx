@@ -9,6 +9,11 @@ export function ProgressCard({ completed, total }: ProgressCardProps) {
       <div className="progress-topline"><div><p className="eyebrow light">DAILY PROGRESS</p><h2>{percentage}% <span>complete</span></h2></div><div className="progress-icon"><Flame size={19} fill="currentColor" /></div></div>
       <div className="progress-track"><div className="progress-fill" style={{ width: `${percentage}%` }} /></div>
       <div className="progress-bottomline"><span>{completed} of {total} tasks and habits</span><span className="progress-arrow"><ArrowUpRight size={15} /> On track</span></div>
+      <div className="progress-mobile-strip">
+        <div className="progress-mobile-stat"><strong>{percentage}%</strong><span>complete</span></div>
+        <div className="progress-mobile-bar"><div className="progress-fill" style={{ width: `${percentage}%` }} /></div>
+        <div className="progress-mobile-stat end"><strong>{completed}/{total}</strong><span>done</span></div>
+      </div>
     </section>
   );
 }
