@@ -25,9 +25,9 @@ function toFriendlyError(message: string): string {
 }
 
 async function ensureProfile(userId: string, email: string): Promise<ProfileSettings | null> {
-  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme').eq('user_id', userId).maybeSingle();
+  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme, notifications_enabled, timezone, onboarded').eq('user_id', userId).maybeSingle();
   if (existing) return existing as ProfileSettings;
-  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme').maybeSingle();
+  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme, notifications_enabled, timezone, onboarded').maybeSingle();
   if (error || !created) return null;
   return created as ProfileSettings;
 }
@@ -111,12 +111,30 @@ export function useProductivityData(userId: string | null) {
     setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
   }, []);
 
-  const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => {
+  const createHabitWithDetails = useCallback(async (name: string, icon: string, color: string, frequency: string) => {
+    const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency').maybeSingle();
+    if (error || !data) throw new Error('Habit could not be created.');
+    const habit = data as HabitRow;
+    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
+  }, []);
+
+  const completeOnboarding = useCallback(async (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => {
+    if (!userId) return;
+    const { error: profileError } = await supabase.from('profile_settings').update({ name, onboarded: true, updated_at: new Date().toISOString() }).eq('user_id', userId);
+    if (profileError) throw new Error('Could not save your profile.');
+    if (selectedHabits.length > 0) {
+      const { error: habitsError } = await supabase.from('habits').insert(selectedHabits.map((h) => ({ name: h.name, icon: h.icon, color: h.color, frequency: h.frequency })));
+      if (habitsError) throw new Error('Could not save your habits.');
+    }
+    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0 }))] }));
+  }, [userId]);
+
+  const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
     if (!userId) return;
     const { error } = await supabase.from('profile_settings').update({ ...updates, updated_at: new Date().toISOString() }).eq('user_id', userId);
     if (error) { setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' })); return; }
     setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, ...updates } : current.profile }));
   }, [userId]);
 
-  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createGoal, updateProfile };
+  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createHabitWithDetails, createGoal, updateProfile, completeOnboarding };
 }
