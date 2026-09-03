@@ -17,6 +17,8 @@ export type Habit = {
   frequency: string;
   streak: number;
   completed: boolean;
+  // history: list of YYYY-MM-DD dates when this habit was completed
+  history?: string[];
 };
 
 export type Goal = {
@@ -35,6 +37,9 @@ export type DataState = {
   tasks: Task[];
   habits: Habit[];
   goals: Goal[];
+  // Raw completion rows include the habit id so streaks can be recomputed accurately
+  completionRows: { habit_id: string; completed_on: string }[];
+  // Convenience list of completed dates (used by calendar UI)
   completions: string[];
   profile: ProfileSettings | null;
   loading: boolean;
