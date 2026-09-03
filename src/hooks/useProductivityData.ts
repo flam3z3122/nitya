@@ -118,6 +118,24 @@ export function useProductivityData(userId: string | null) {
     setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
   }, []);
 
+  const deleteTask = useCallback(async (id: string) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) { setState((current) => ({ ...current, error: 'That task could not be deleted. Please try again.' })); return; }
+    setState((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== id) }));
+  }, []);
+
+  const deleteHabit = useCallback(async (id: string) => {
+    const { error } = await supabase.from('habits').delete().eq('id', id);
+    if (error) { setState((current) => ({ ...current, error: 'That habit could not be deleted. Please try again.' })); return; }
+    setState((current) => ({ ...current, habits: current.habits.filter((habit) => habit.id !== id) }));
+  }, []);
+
+  const deleteGoal = useCallback(async (id: string) => {
+    const { error } = await supabase.from('goals').delete().eq('id', id);
+    if (error) { setState((current) => ({ ...current, error: 'That goal could not be deleted. Please try again.' })); return; }
+    setState((current) => ({ ...current, goals: current.goals.filter((goal) => goal.id !== id) }));
+  }, []);
+
   const completeOnboarding = useCallback(async (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => {
     if (!userId) return;
     const { error: profileError } = await supabase.from('profile_settings').update({ name, onboarded: true, updated_at: new Date().toISOString() }).eq('user_id', userId);
@@ -136,5 +154,5 @@ export function useProductivityData(userId: string | null) {
     setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, ...updates } : current.profile }));
   }, [userId]);
 
-  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createHabitWithDetails, createGoal, updateProfile, completeOnboarding };
+  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createHabitWithDetails, createGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding };
 }
