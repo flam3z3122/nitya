@@ -1,12 +1,14 @@
-import { Check, Clock3, MoreHorizontal } from 'lucide-react';
+import { Check, Clock3, Trash2 } from 'lucide-react';
 import type { Task } from '@/types';
 
 type TaskCardProps = {
   task: Task;
   onToggle: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
-export function TaskCard({ task, onToggle }: TaskCardProps) {
+export function TaskCard({ task, onToggle, onDelete }: TaskCardProps) {
+  const handleDelete = () => { if (onDelete) onDelete(task.id); };
   return (
     <div className={`task-card ${task.completed ? 'is-complete' : ''}`}>
       <button className="task-check" onClick={() => onToggle(task.id)} aria-label={`Mark ${task.title} ${task.completed ? 'incomplete' : 'complete'}`}>
@@ -20,7 +22,7 @@ export function TaskCard({ task, onToggle }: TaskCardProps) {
           <span className="inline-flex items-center gap-1"><Clock3 size={12} /> {task.time}</span>
         </div>
       </div>
-      <button className="icon-button subtle" aria-label="More task options"><MoreHorizontal size={18} /></button>
+      {onDelete && <button className="icon-button subtle delete-btn" onClick={handleDelete} aria-label={`Delete ${task.title}`}><Trash2 size={16} /></button>}
     </div>
   );
 }

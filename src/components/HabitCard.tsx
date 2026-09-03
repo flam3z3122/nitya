@@ -1,13 +1,15 @@
-import { Check, Flame, MoreHorizontal } from 'lucide-react';
+import { Check, Flame, Trash2 } from 'lucide-react';
 import type { Habit } from '@/types';
 
 type HabitCardProps = {
   habit: Habit;
   onToggle: (id: string) => void;
   compact?: boolean;
+  onDelete?: (id: string) => void;
 };
 
-export function HabitCard({ habit, onToggle, compact = false }: HabitCardProps) {
+export function HabitCard({ habit, onToggle, compact = false, onDelete }: HabitCardProps) {
+  const handleDelete = () => { if (onDelete) onDelete(habit.id); };
   return (
     <div className={`habit-card ${compact ? 'habit-card-compact' : ''}`}>
       <div className={`habit-icon habit-${habit.color}`}>{habit.icon}</div>
@@ -18,7 +20,7 @@ export function HabitCard({ habit, onToggle, compact = false }: HabitCardProps) 
       <button className={`habit-check ${habit.completed ? 'is-complete' : ''}`} onClick={() => onToggle(habit.id)} aria-label={`Mark ${habit.name} ${habit.completed ? 'incomplete' : 'complete'}`}>
         {habit.completed && <Check size={17} strokeWidth={3} />}
       </button>
-      {!compact && <button className="icon-button subtle" aria-label="More habit options"><MoreHorizontal size={18} /></button>}
+      {onDelete && !compact && <button className="icon-button subtle delete-btn" onClick={handleDelete} aria-label={`Delete ${habit.name}`}><Trash2 size={16} /></button>}
     </div>
   );
 }
