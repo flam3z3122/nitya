@@ -4,82 +4,6 @@
 @tailwind utilities;
 
 :root { font-family: 'DM Sans', sans-serif; color: #1c2828; background: #f7f9f7; font-synthesis: none; --ink: #1c2828; --muted: #71807e; --line: #e5ebe8; --green: #4f9c80; --green-dark: #26705d; --soft-green: #e9f4ee; --cream: #fffdf8; }
-
-/* Dark theme variables applied when `dark` class is present on <html> */
-.dark { color: #e6efe9; --ink: #e6efe9; --muted: #93a79a; --line: #19302b; --green: #67b389; --green-dark: #3fa074; --soft-green: #07261f; --cream: #07110f; background: #071018; }
-.dark body { background: #071018; }
-.dark .auth-card, .dark .goal-card, .dark .calendar-card, .dark .stats-card, .dark .profile-card, .dark .settings-card, .dark .habit-card, .dark .task-card, .dark .chart-card, .dark .consistency-card, .dark .quick-add-menu { background: #07141a; border-color: var(--line); color: var(--ink); }
-
-/* Additional dark mode overrides to cover remaining light styles */
-.dark .page-content { background: transparent; }
-.dark .button-light { background: transparent; border-color: rgba(255,255,255,0.06); color: var(--ink); }
-.dark .icon-button { background: #07141a; border-color: rgba(255,255,255,0.04); color: var(--muted); }
-.dark .header-actions { color: var(--muted); }
-.dark .eyebrow { color: var(--muted); }
-.dark .eyebrow.light { color: #7aa78f; }
-.dark .setting-row { background: transparent; border-bottom-color: rgba(255,255,255,0.03); }
-.dark .setting-row:hover { background: rgba(255,255,255,0.02); }
-.dark .setting-icon { background: transparent; color: var(--muted); }
-.dark .setting-value { color: var(--muted); }
-.dark .setting-option { background: transparent; color: var(--ink); }
-.dark .setting-option.active { background: rgba(63,160,116,0.12); color: var(--green); }
-.dark .member-pill { background: rgba(63,160,116,0.08); color: var(--green); }
-.dark .progress-card { background: linear-gradient(135deg, #184b3f 0%, #0f352b 100%); }
-.dark .quote-card { background: #08221a; color: #bfe0cf; }
-.dark .streak-card { background: #071816; border-color: rgba(255,255,255,0.03); }
-.dark .goal-card, .dark .stats-card { background: #07141a; }
-.dark .task-card, .dark .habit-card { background: #07141a; border-color: rgba(255,255,255,0.03); }
-.dark .calendar-day { background: transparent; color: var(--muted); }
-.dark .calendar-day.selected { color: #07141a; background: var(--green); }
-.dark .calendar-day.has-activity:not(.selected) i { background: #d98c57; }
-.dark .data-warning { background: #2b1b18; color: #ffd6c9; border-color: rgba(255,255,255,0.04); }
-
-/* Bottom nav should adapt to dark theme */
-.dark .bottom-nav { background: rgba(7,16,24,0.9); border-top-color: rgba(255,255,255,0.04); }
-.dark .bottom-nav button { color: #86b79f; }
-.dark .bottom-nav button.active { color: var(--green); }
-
-/* Quick add and menus */
-.dark .quick-add { background: #c97743; }
-.dark .quick-add-menu { background: #07141a; box-shadow: 0 16px 35px #00000080; }
-
-/* Misc text colors */
-.dark p, .dark h1, .dark h2, .dark strong, .dark span, .dark small { color: var(--ink); }
-
-/* Goal card/icon */
-.dark .goal-card { background: #07141a; border-color: rgba(255,255,255,0.03); }
-.dark .goal-icon { background: rgba(103,179,137,0.08); color: var(--green); }
-
-/* Category and priority pills */
-.dark .category-pill { color: #9fbfae; background: rgba(255,255,255,0.02); }
-.dark .priority { background: rgba(255,255,255,0.02); color: #f0c6a9; }
-.dark .priority-high { background: rgba(255,200,200,0.04); color: #ffb3a8; }
-.dark .priority-low { background: rgba(150,200,170,0.04); color: #9fd1b3; }
-
-/* Habit color variants (make them subtle in dark) */
-.dark .habit-mint { color: #67b389; background: rgba(103,179,137,0.06); }
-.dark .habit-peach { color: #c27c52; background: rgba(194,124,82,0.04); }
-.dark .habit-blue { color: #548da3; background: rgba(84,141,163,0.04); }
-.dark .habit-lavender { color: #907f9f; background: rgba(144,127,159,0.04); }
-
-/* Day detail under calendar */
-.dark .day-detail { background: #071816; border-color: rgba(255,255,255,0.03); color: var(--ink); }
-.dark .detail-item { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.02); }
-
-/* Make small UI elements visible */
-.dark .goal-title, .dark .task-meta, .dark .habit-meta, .dark .task-title, .dark .habit-name { color: var(--ink); }
-
-/* Habits page: mini stat cards and intro area */
-.dark .subpage-intro { background: transparent; }
-.dark .subpage-intro .mini-stat { background: #07141a; border-color: rgba(255,255,255,0.03); color: var(--ink); }
-.dark .mini-stat-icon { background: rgba(255,255,255,0.02); color: var(--green); }
-.dark .filter-row { color: var(--muted); }
-.dark .filter { background: transparent; color: var(--muted); border: 1px solid rgba(255,255,255,0.02); }
-.dark .filter.active { background: rgba(63,160,116,0.08); color: var(--green); }
-
-/* Make the small 'New habit' button match dark theme */
-.dark .page-header .button { background: rgba(255,255,255,0.03); color: var(--ink); border: 1px solid rgba(255,255,255,0.04); }
-
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #f7f9f7; }
 button { border: 0; font: inherit; cursor: pointer; color: inherit; }
@@ -88,6 +12,23 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f1f6f2; position: relative; overflow: hidden; }
 .auth-screen::before, .auth-screen::after { content: ''; position: absolute; border-radius: 50%; pointer-events: none; }.auth-screen::before { width: 420px; height: 420px; background: #e3f1e8; top: -210px; right: -140px; }.auth-screen::after { width: 300px; height: 300px; background: #f8eedd; bottom: -160px; left: -100px; }
 .auth-card { position: relative; z-index: 1; width: min(100%, 420px); background: #fff; border: 1px solid #e1ebe5; border-radius: 24px; padding: 34px 25px 27px; box-shadow: 0 20px 50px #274c3b12; }.auth-brand { display: flex; align-items: center; justify-content: center; gap: 9px; font: 800 21px 'Manrope', sans-serif; letter-spacing: -.8px; }.auth-brand-mark { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 11px; color: #fff; background: #4f947b; }.auth-hero { text-align: center; margin: 37px 0 28px; }.auth-hero h1 { margin: 0; font: 800 29px 'Manrope', sans-serif; letter-spacing: -1px; }.auth-hero p { color: #84928c; font-size: 12px; line-height: 1.5; margin: 9px 0 0; }.auth-form { display: grid; gap: 11px; }.auth-field { display: flex; align-items: center; gap: 10px; border: 1px solid #dce6e1; border-radius: 12px; padding: 0 13px; color: #8c9a94; transition: .2s ease; }.auth-field:focus-within { border-color: #75ae91; box-shadow: 0 0 0 3px #e2f1e8; }.auth-field input { width: 100%; height: 48px; border: 0; outline: 0; color: var(--ink); font: inherit; font-size: 13px; background: transparent; }.auth-submit { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 12px; color: #fff; background: #1f3730; font-size: 13px; font-weight: 700; margin-top: 5px; transition: .2s ease; }.auth-submit:hover:not(:disabled) { background: #31584b; transform: translateY(-1px); }.auth-submit:disabled { opacity: .6; cursor: wait; }.auth-error { color: #bc675c; background: #fff0ed; border-radius: 9px; padding: 9px 11px; margin: 0; font-size: 11px; line-height: 1.4; }.auth-switch { text-align: center; color: #8a9792; font-size: 11px; margin: 24px 0 0; }.auth-switch button { background: transparent; color: #3e8068; font-weight: 700; margin-left: 5px; }.auth-switch button:hover { text-decoration: underline; }
+.auth-forgot-link { background: transparent; color: #5e8a78; font-size: 11px; font-weight: 600; padding: 0; align-self: flex-end; margin-top: -2px; }.auth-forgot-link:hover { text-decoration: underline; color: #3e8068; }
+.auth-back-link { display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center; margin-top: 18px; background: transparent; color: #8a9792; font-size: 12px; font-weight: 600; }.auth-back-link:hover { color: #3e8068; }
+.auth-reset-sent { text-align: center; padding: 10px 0; }.auth-reset-sent h1 { margin: 16px 0 10px; font: 800 24px 'Manrope', sans-serif; letter-spacing: -.8px; }.auth-reset-sent p { color: #84928c; font-size: 12px; line-height: 1.6; margin: 0 0 22px; }.auth-reset-sent strong { color: #4a6b5e; }.auth-reset-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e8f3ed; color: #4d9376; margin: 0 auto; }.auth-reset-sent .auth-submit { width: auto; padding: 0 22px; margin: 0 auto; }
+.onboarding-card { width: min(100%, 460px); }
+.onboarding-progress { display: flex; justify-content: center; gap: 7px; margin: 22px 0 8px; }.onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: #d6e0db; transition: .3s ease; }.onboarding-dot.active { background: #4f9c80; width: 22px; border-radius: 20px; }
+.onboarding-step { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+.onboarding-hero { text-align: center; margin: 8px 0 4px; }.onboarding-hero h1 { margin: 14px 0 8px; font: 800 24px 'Manrope', sans-serif; letter-spacing: -.8px; }.onboarding-hero p { color: #84928c; font-size: 12px; line-height: 1.5; margin: 0; }
+.onboarding-icon-large { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; background: #e8f3ed; color: #4d9376; margin: 0 auto; }
+.onboarding-name-input { width: 100%; border: 1px solid #dce6e1; border-radius: 12px; padding: 13px 15px; font: inherit; font-size: 14px; outline: 0; transition: .2s ease; }.onboarding-name-input:focus { border-color: #75ae91; box-shadow: 0 0 0 3px #e2f1e8; }
+.onboarding-habit-grid { display: grid; gap: 8px; }
+.onboarding-habit-pill { display: flex; align-items: center; gap: 11px; background: #f7f9f7; border: 1.5px solid #e5ebe8; border-radius: 13px; padding: 11px 13px; font-size: 13px; font-weight: 600; color: #5a6964; transition: .2s ease; text-align: left; }.onboarding-habit-pill:hover { border-color: #c4d9ce; background: #f3f8f4; }.onboarding-habit-pill.selected { border-color: #4f9c80; background: #e8f3ed; color: #2d5e4c; }
+.onboarding-habit-icon { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; }.onboarding-habit-icon.habit-mint { color: #438c72; background: #dff0e6; }.onboarding-habit-icon.habit-peach { color: #c27c52; background: #f9e5d8; }.onboarding-habit-icon.habit-blue { color: #548da3; background: #e0eef3; }.onboarding-habit-icon.habit-lavender { color: #907f9f; background: #eee9f2; }
+.onboarding-habit-check { margin-left: auto; color: #4f9c80; }
+.onboarding-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.onboarding-back { display: flex; align-items: center; gap: 5px; background: transparent; color: #8a9792; font-size: 12px; font-weight: 600; padding: 8px 0; }.onboarding-back:hover { color: #3e8068; }
+.onboarding-tips { display: grid; gap: 10px; }
+.onboarding-tip { display: flex; gap: 11px; align-items: start; background: #f7f9f7; border: 1px solid #e5ebe8; border-radius: 13px; padding: 13px 14px; }.onboarding-tip-icon { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #e8f3ed; color: #4d9376; }.onboarding-tip strong { display: block; font-size: 13px; font-weight: 700; color: #3a4a44; }.onboarding-tip p { margin: 3px 0 0; font-size: 11px; color: #84928c; line-height: 1.5; }
 .sidebar { display: none; }
 .main-area { width: 100%; min-width: 0; }
 .page-content { max-width: 1160px; margin: 0 auto; padding: 28px 20px 110px; }
@@ -98,7 +39,9 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #fff; border: 1px solid var(--line); color: #60706d; transition: .2s ease; }
 .icon-button:hover { transform: translateY(-1px); border-color: #c4d7ce; color: var(--green-dark); }
-icon-button.subtle { width: 30px; height: 30px; border: 0; background: transparent; }
+.icon-button.subtle { width: 30px; height: 30px; border: 0; background: transparent; }
+.notification-button { position: relative; }
+.notification-button i { position: absolute; right: 9px; top: 8px; height: 5px; width: 5px; border-radius: 50%; background: #dd8a58; border: 1px solid #fff; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 11px; min-height: 40px; padding: 0 15px; font-size: 13px; font-weight: 700; transition: .2s ease; }
 .button span { font-size: 19px; font-weight: 400; line-height: 0; }
 .button-dark { background: var(--ink); color: #fff; box-shadow: 0 5px 12px #1c282818; }

@@ -27,7 +27,10 @@ export type Goal = {
 export type ProfileSettings = {
   name: string;
   email: string;
-  theme: 'Light' | 'Dark';
+  theme: 'Light' | 'Dark' | 'System';
+  notifications_enabled: boolean;
+  timezone: string;
+  onboarded: boolean;
 };
 
 export type DataState = {
