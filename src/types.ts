@@ -17,6 +17,7 @@ export type Habit = {
   frequency: string;
   streak: number;
   completed: boolean;
+  history: string[];
 };
 
 export type Goal = {
