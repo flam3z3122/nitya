@@ -15,7 +15,6 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const idRef = useRef(`menu-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
@@ -25,16 +24,14 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
       if (menuRef.current && menuRef.current.contains(target)) return;
       if (buttonRef.current && buttonRef.current.contains(target)) return;
       setOpen(false);
-      setMenuPos(null);
     };
     const onOther = (ev: Event) => {
       const otherId = (ev as CustomEvent).detail as string;
       if (otherId !== idRef.current) {
         setOpen(false);
-        setMenuPos(null);
       }
     };
-    const onResize = () => { setOpen(false); setMenuPos(null); };
+    const onResize = () => { setOpen(false); };
     document.addEventListener('click', onDoc);
     window.addEventListener('overflow-menu-open', onOther as EventListener);
     window.addEventListener('resize', onResize);
@@ -62,20 +59,13 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
       <div className="overflow-menu" ref={ref}>
         <button ref={buttonRef} className="icon-button small" onClick={(e) => {
           e.stopPropagation();
-          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          const menuWidth = 160;
-          let left = rect.right - menuWidth + 8; // align right edge under button
-          if (left < 8) left = 8;
-          if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
-          const top = rect.bottom + 8;
-          setMenuPos({ top, left });
-          // notify other menus to close
+          console.debug('[TaskCard] menu button clicked', { id: idRef.current });
           window.dispatchEvent(new CustomEvent('overflow-menu-open', { detail: idRef.current }));
           setOpen((v) => !v);
         }} aria-label="More"><MoreHorizontal size={16} /></button>
-        {open && menuPos && (
-          <div className="menu" ref={menuRef} style={{ position: 'fixed', top: menuPos.top, left: menuPos.left }}>
-            <button onClick={() => { setOpen(false); if (onEdit) onEdit(task.id); }}>
+        {open && (
+          <div className="menu" ref={menuRef}>
+            <button onClick={() => { console.debug('[TaskCard] Edit clicked', { id: task.id, hasHandler: !!onEdit }); setOpen(false); if (onEdit) onEdit(task.id); window.dispatchEvent(new CustomEvent('open-edit', { detail: { type: 'task', id: task.id } })); }}>
               <span className="menu-icon"><Pencil size={14} /></span>
               <span>Edit</span>
             </button>
