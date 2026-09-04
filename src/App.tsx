@@ -1,35 +1,215 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { QuickAdd } from '@/components/QuickAdd';
 import { AuthScreen } from '@/components/AuthScreen';
 import { OnboardingScreen } from '@/components/OnboardingScreen';
-import { TodayPage, HabitsPage, CalendarPage, StatisticsPage, ProfilePage } from '@/pages';
+import { EditModal } from '@/components/EditModal';
+import type { EditItem, EditType, EditUpdates } from '@/components/EditModal';
+import {
+  TodayPage,
+  HabitsPage,
+  CalendarPage,
+  StatisticsPage,
+  ProfilePage,
+} from '@/pages';
 import { useAuth } from '@/hooks/useAuth';
 import { useProductivityData } from '@/hooks/useProductivityData';
 import { useHashRoute } from '@/hooks/useHashRoute';
+import type { Goal, Habit, Task } from '@/types';
 
 function App() {
   const [screen, setScreen] = useHashRoute();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
 
+  useEffect(() => {
+    const mode = data.profile?.theme ?? 'Light';
+
+    if (mode === 'Dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [data.profile?.theme]);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editType, setEditType] = useState<EditType | null>(null);
+  const [editItem, setEditItem] = useState<EditItem | null>(null);
+
+  const openEdit = (type: EditType, id: string) => {
+    const item =
+      type === 'task'
+        ? data.tasks.find((task) => task.id === id) ?? null
+        : type === 'habit'
+          ? data.habits.find((habit) => habit.id === id) ?? null
+          : data.goals.find((goal) => goal.id === id) ?? null;
+
+    if (!item) return;
+
+    setEditItem(item);
+    setEditType(type);
+    setEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditType(null);
+    setEditItem(null);
+  };
+
+  const saveEdit = async (id: string, updates: EditUpdates) => {
+    if (editType === 'task') {
+      await data.updateTask(id, updates as Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>);
+    }
+
+    if (editType === 'habit') {
+      await data.updateHabit(id, updates as Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency'>>);
+    }
+
+    if (editType === 'goal') {
+      await data.updateGoal(id, updates as Partial<Pick<Goal, 'title'>>);
+    }
+  };
+
   if (auth.loading) {
-    return <div className="loading-screen"><div className="loading-spinner" /><p>Loading your daymark\u2026</p></div>;
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <p>Loading your daymark…</p>
+      </div>
+    );
   }
 
   if (!auth.user) {
-    return <AuthScreen mode={authMode} onModeChange={setAuthMode} onSubmit={authMode === 'signin' ? auth.signIn : auth.signUp} onResetPassword={auth.resetPassword} loading={auth.loading} error={auth.error} />;
+    return (
+      <AuthScreen
+        mode={authMode}
+        onModeChange={setAuthMode}
+        onSubmit={
+          authMode === 'signin'
+            ? auth.signIn
+            : auth.signUp
+        }
+        onResetPassword={auth.resetPassword}
+        loading={auth.loading}
+        error={auth.error}
+      />
+    );
   }
 
   if (data.profile && !data.profile.onboarded) {
-    return <OnboardingScreen onComplete={data.completeOnboarding} loading={data.loading} error={data.error} />;
+    return (
+      <OnboardingScreen
+        onComplete={data.completeOnboarding}
+        loading={data.loading}
+        error={data.error}
+      />
+    );
   }
 
-  const page = data.loading ? <div className="loading-screen"><div className="loading-spinner" /><p>Loading your workspace\u2026</p></div> : data.error && !data.tasks.length && !data.habits.length ? <div className="error-screen"><h2>We couldn't load your workspace</h2><p>{data.error}</p><button className="button button-dark" onClick={() => void data.reload()}>Try again</button></div> : screen === 'today' ? <TodayPage tasks={data.tasks} habits={data.habits} goals={data.goals} onToggleTask={data.toggleTask} onToggleHabit={data.toggleHabit} onDeleteTask={data.deleteTask} onDeleteHabit={data.deleteHabit} onDeleteGoal={data.deleteGoal} onNavigate={setScreen} onQuickAdd={() => setQuickAddOpen(true)} userName={data.profile?.name} /> : screen === 'habits' ? <HabitsPage habits={data.habits} onToggle={data.toggleHabit} onDelete={data.deleteHabit} /> : screen === 'calendar' ? <CalendarPage completions={data.completions} /> : screen === 'statistics' ? <StatisticsPage tasks={data.tasks} habits={data.habits} /> : <ProfilePage profile={data.profile} authEmail={auth.user.email} emailVerified={auth.user.emailVerified} onSignOut={() => void auth.signOut()} onUpdateProfile={data.updateProfile} onResendVerification={auth.resendVerification} onDeleteAccount={data.deleteAccount} />;
+  const page =
+    data.loading ? (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <p>Loading your workspace…</p>
+      </div>
+    ) : data.error &&
+      !data.tasks.length &&
+      !data.habits.length ? (
+      <div className="error-screen">
+        <h2>We couldn't load your workspace</h2>
+        <p>{data.error}</p>
+        <button
+          className="button button-dark"
+          onClick={() => void data.reload()}
+        >
+          Try again
+        </button>
+      </div>
+    ) : screen === 'today' ? (
+      <TodayPage
+        tasks={data.tasks}
+        habits={data.habits}
+        goals={data.goals}
+        onToggleTask={data.toggleTask}
+        onToggleHabit={data.toggleHabit}
+        onDeleteTask={data.deleteTask}
+        onDeleteHabit={data.deleteHabit}
+        onDeleteGoal={data.deleteGoal}
+        onNavigate={setScreen}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        onEditTask={(id) => openEdit('task', id)}
+        onEditHabit={(id) => openEdit('habit', id)}
+        onEditGoal={(id) => openEdit('goal', id)}
+        userName={data.profile?.name}
+      />
+    ) : screen === 'habits' ? (
+      <HabitsPage
+        habits={data.habits}
+        onToggle={data.toggleHabit}
+        onDelete={data.deleteHabit}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        onEdit={(id) => openEdit('habit', id)}
+      />
+    ) : screen === 'calendar' ? (
+      <CalendarPage completions={data.completions} />
+    ) : screen === 'statistics' ? (
+      <StatisticsPage
+        tasks={data.tasks}
+        habits={data.habits}
+      />
+    ) : (
+      <ProfilePage
+        profile={data.profile}
+        authEmail={auth.user?.email ?? ''}
+        emailVerified={auth.user?.emailVerified ?? false}
+        onSignOut={() => void auth.signOut()}
+        onUpdateProfile={data.updateProfile}
+        onResendVerification={auth.resendVerification}
+        onDeleteAccount={data.deleteAccount}
+      />
+    );
 
-  return <div className="app-shell"><Navigation active={screen} onChange={setScreen} userEmail={auth.user.email} /><main className="main-area">{data.error && data.tasks.length > 0 && <div className="data-warning">{data.error}</div>}{page}</main><QuickAdd open={quickAddOpen} onClose={() => setQuickAddOpen((value) => !value)} onCreateTask={data.createTask} onCreateHabit={data.createHabit} onCreateGoal={data.createGoal} /></div>;
+  return (
+    <div className="app-shell">
+      <Navigation
+        active={screen}
+        onChange={setScreen}
+        userEmail={auth.user?.email ?? ''}
+      />
+
+      <main className="main-area">
+        {data.error && data.tasks.length > 0 && (
+          <div className="data-warning">
+            {data.error}
+          </div>
+        )}
+
+        {page}
+      </main>
+
+      <QuickAdd
+        open={quickAddOpen}
+        onClose={() =>
+          setQuickAddOpen((value) => !value)
+        }
+        onCreateTask={data.createTask}
+        onCreateHabit={data.createHabit}
+        onCreateGoal={data.createGoal}
+      />
+
+      <EditModal
+        open={editOpen}
+        type={editType}
+        item={editItem}
+        onClose={closeEdit}
+        onSave={saveEdit}
+      />
+    </div>
+  );
 }
 
 export default App;
