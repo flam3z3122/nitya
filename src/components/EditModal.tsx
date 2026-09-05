@@ -50,7 +50,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('Medium');
-  const [time, setTime] = useState('');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('✦');
   const [color, setColor] = useState('mint');
@@ -65,7 +64,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       setTitle(item.title);
       setCategory(item.category);
       setPriority(item.priority);
-      setTime(item.time);
     } else if (isHabit(item, type)) {
       setName(item.name);
       setIcon(item.icon);
@@ -108,7 +106,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           title: title.trim(),
           category: category.trim() || 'Personal',
           priority,
-          time: time.trim() || 'Anytime',
         });
       } else if (type === 'habit') {
         await onSave(item.id, {
@@ -237,30 +234,20 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
                   ))}
                 </div>
               </Field>
-              <div className="edit-field-row">
-                <Field label="Priority">
-                  <div className="edit-chip-row">
-                    {priorities.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`edit-priority priority-${value.toLowerCase()} ${priority === value ? 'is-active' : ''}`}
-                        onClick={() => setPriority(value)}
-                      >
-                        {value}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="Time">
-                  <input
-                    className="quick-input"
-                    value={time}
-                    onChange={(event) => setTime(event.target.value)}
-                    placeholder="Anytime"
-                  />
-                </Field>
-              </div>
+              <Field label="Priority">
+                <div className="edit-chip-row">
+                  {priorities.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`edit-priority priority-${value.toLowerCase()} ${priority === value ? 'is-active' : ''}`}
+                      onClick={() => setPriority(value)}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </Field>
             </>
           ) : (
             <Field label="Title">
