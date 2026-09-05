@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { CheckSquare, Leaf, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
 
 export type EditType = 'task' | 'habit' | 'goal';
@@ -17,9 +17,17 @@ type EditModalProps = {
   onSave: (id: string, updates: EditUpdates) => Promise<void>;
 };
 
-const habitColors = ['mint', 'peach', 'blue', 'lavender'] as const;
+const habitColors = [
+  { value: 'mint', label: 'Mint' },
+  { value: 'peach', label: 'Peach' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'lavender', label: 'Lavender' },
+] as const;
+
+const habitIcons = ['✦', '💧', '🏃', '📚', '🧘', '🚶', '✍️', '🌅'];
 const frequencies = ['Daily', 'Weekly'] as const;
 const priorities: Task['priority'][] = ['High', 'Medium', 'Low'];
+const categories = ['Personal', 'Work', 'Health', 'Study'];
 
 function isTask(item: EditItem, type: EditType | null): item is Task {
   return type === 'task';
@@ -27,6 +35,15 @@ function isTask(item: EditItem, type: EditType | null): item is Task {
 
 function isHabit(item: EditItem, type: EditType | null): item is Habit {
   return type === 'habit';
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="edit-field">
+      <span>{label}</span>
+      {children}
+    </div>
+  );
 }
 
 export function EditModal({ open, type, item, onClose, onSave }: EditModalProps) {
@@ -59,15 +76,29 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
     }
   }, [item, type]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open || !type || !item) return null;
 
-  const heading =
-    type === 'task' ? 'Edit task' : type === 'habit' ? 'Edit habit' : 'Edit goal';
+  const copy = {
+    task: { eyebrow: 'Edit task', title: 'What needs to get done?', icon: CheckSquare, mark: 'quick-green' },
+    habit: { eyebrow: 'Edit habit', title: 'What routine are you building?', icon: Leaf, mark: 'quick-yellow' },
+    goal: { eyebrow: 'Edit goal', title: 'What milestone matters?', icon: Target, mark: 'quick-blue' },
+  }[type];
+  const MarkIcon = copy.icon;
 
-  const canSave =
-    type === 'habit' ? name.trim().length > 0 : title.trim().length > 0;
+  const canSave = type === 'habit' ? name.trim().length > 0 : title.trim().length > 0;
+  const shownIcons = habitIcons.includes(icon) ? habitIcons : [icon, ...habitIcons];
 
-  const submit = async () => {
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault();
     if (!canSave) return;
     setSaving(true);
     setError(null);
@@ -99,89 +130,161 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-header">
-          <h3>{heading}</h3>
-          <button className="icon-button" onClick={onClose} aria-label="Close edit">
+      <div
+        className="edit-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="edit-modal-header">
+          <div className="edit-modal-heading">
+            <span className={`quick-icon ${copy.mark}`}>
+              <MarkIcon size={18} />
+            </span>
+            <div>
+              <p className="eyebrow">{copy.eyebrow}</p>
+              <h3 id="edit-modal-title">{copy.title}</h3>
+            </div>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close edit">
             <X size={18} />
           </button>
         </div>
-        <div className="modal-body">
+
+        <form className="edit-modal-body" onSubmit={(event) => void submit(event)}>
           {type === 'habit' ? (
-            <div className="form-grid">
-              <label>
-                Name
-                <input value={name} onChange={(event) => setName(event.target.value)} />
-              </label>
-              <label>
-                Icon
-                <input value={icon} onChange={(event) => setIcon(event.target.value)} />
-              </label>
-              <label>
-                Color
-                <select value={color} onChange={(event) => setColor(event.target.value)}>
-                  {habitColors.map((value) => (
-                    <option key={value} value={value}>{value}</option>
+            <>
+              <div className="edit-habit-preview">
+                <span className={`habit-icon habit-${color}`}>{icon}</span>
+                <Field label="Name">
+                  <input
+                    className="quick-input"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Morning walk"
+                    autoFocus
+                  />
+                </Field>
+              </div>
+              <Field label="Icon">
+                <div className="edit-chip-row">
+                  {shownIcons.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`edit-icon-chip ${icon === value ? 'is-active' : ''}`}
+                      onClick={() => setIcon(value)}
+                      aria-label={`Icon ${value}`}
+                    >
+                      {value}
+                    </button>
                   ))}
-                </select>
-              </label>
-              <label>
-                Frequency
-                <select value={frequency} onChange={(event) => setFrequency(event.target.value)}>
+                </div>
+              </Field>
+              <Field label="Color">
+                <div className="edit-chip-row">
+                  {habitColors.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`edit-color-chip habit-${option.value} ${color === option.value ? 'is-active' : ''}`}
+                      onClick={() => setColor(option.value)}
+                    >
+                      <i />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Frequency">
+                <div className="edit-chip-row">
                   {frequencies.map((value) => (
-                    <option key={value} value={value}>{value}</option>
+                    <button
+                      key={value}
+                      type="button"
+                      className={`edit-choice ${frequency === value ? 'is-active' : ''}`}
+                      onClick={() => setFrequency(value)}
+                    >
+                      {value}
+                    </button>
                   ))}
-                </select>
-              </label>
-            </div>
+                </div>
+              </Field>
+            </>
           ) : type === 'task' ? (
-            <div className="form-grid">
-              <label>
-                Title
-                <input value={title} onChange={(event) => setTitle(event.target.value)} />
-              </label>
-              <label>
-                Category
-                <input value={category} onChange={(event) => setCategory(event.target.value)} />
-              </label>
-              <label>
-                Priority
-                <select
-                  value={priority}
-                  onChange={(event) => setPriority(event.target.value as Task['priority'])}
-                >
-                  {priorities.map((value) => (
-                    <option key={value} value={value}>{value}</option>
+            <>
+              <Field label="Title">
+                <input
+                  className="quick-input"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="e.g. Call the dentist"
+                  autoFocus
+                />
+              </Field>
+              <Field label="Category">
+                <div className="edit-chip-row">
+                  {categories.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`edit-choice ${category === value ? 'is-active' : ''}`}
+                      onClick={() => setCategory(value)}
+                    >
+                      {value}
+                    </button>
                   ))}
-                </select>
-              </label>
-              <label>
-                Time
-                <input value={time} onChange={(event) => setTime(event.target.value)} />
-              </label>
-            </div>
+                </div>
+              </Field>
+              <div className="edit-field-row">
+                <Field label="Priority">
+                  <div className="edit-chip-row">
+                    {priorities.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`edit-priority priority-${value.toLowerCase()} ${priority === value ? 'is-active' : ''}`}
+                        onClick={() => setPriority(value)}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Time">
+                  <input
+                    className="quick-input"
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                    placeholder="Anytime"
+                  />
+                </Field>
+              </div>
+            </>
           ) : (
-            <div className="form-grid">
-              <label>
-                Title
-                <input value={title} onChange={(event) => setTitle(event.target.value)} />
-              </label>
-            </div>
+            <Field label="Title">
+              <input
+                className="quick-input"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="e.g. Launch my portfolio"
+                autoFocus
+              />
+            </Field>
           )}
+
           {error && <p className="quick-error">{error}</p>}
-        </div>
-        <div className="modal-actions">
-          <button className="button button-light" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button
-            className="button button-dark"
-            onClick={() => void submit()}
-            disabled={!canSave || saving}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+
+          <div className="edit-modal-actions">
+            <button type="button" className="button button-light" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" className="button button-dark" disabled={!canSave || saving}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
