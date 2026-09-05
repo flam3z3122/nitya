@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Check, Dumbbell, Droplet, Flame, Leaf, Moon, Sparkles, Target, User } from 'lucide-react';
+import { goodHabitSuggestions } from '@/data/habitSuggestions';
 
 type OnboardingScreenProps = {
   onComplete: (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => Promise<void>;
@@ -9,14 +10,19 @@ type OnboardingScreenProps = {
 
 type ExampleHabit = { name: string; icon: string; color: string; frequency: string; lucideIcon: typeof Flame };
 
-const exampleHabits: ExampleHabit[] = [
-  { name: 'Drink 8 glasses of water', icon: '\u{1F4A7}', color: 'blue', frequency: 'Daily', lucideIcon: Droplet },
-  { name: 'Morning exercise', icon: '\u{1F3CB}', color: 'mint', frequency: 'Daily', lucideIcon: Dumbbell },
-  { name: 'Read for 20 minutes', icon: '\u{1F4D6}', color: 'peach', frequency: 'Daily', lucideIcon: Leaf },
-  { name: 'Sleep before 11pm', icon: '\u{1F4A4}', color: 'lavender', frequency: 'Daily', lucideIcon: Moon },
-  { name: 'Meditate for 5 minutes', icon: '\u{1F9D8}', color: 'lavender', frequency: 'Daily', lucideIcon: Sparkles },
-  { name: 'Daily walk', icon: '\u{1F6B6}', color: 'mint', frequency: 'Daily', lucideIcon: Target },
-];
+const lucideMap: Record<string, typeof Flame> = {
+  '\u{1F4A7}': Droplet,
+  '\u{1F3CB}\u{FE0F}': Dumbbell,
+  '\u{1F4D6}': Leaf,
+  '\u{1F4A4}': Moon,
+  '\u{1F9D8}': Sparkles,
+  '\u{1F6B6}': Target,
+};
+
+const exampleHabits: ExampleHabit[] = goodHabitSuggestions.slice(0, 6).map((h) => ({
+  ...h,
+  lucideIcon: lucideMap[h.icon] ?? Flame,
+}));
 
 const tips = [
   { title: 'Start small', text: 'Pick 1-3 habits to begin with. You can always add more later.' },

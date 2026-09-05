@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export type AuthUser = { id: string; email: string };
+export type AuthUser = { id: string; email: string; emailVerified: boolean };
 
 type AuthState = { user: AuthUser | null; loading: boolean; error: string | null };
+
+function extractUser(sessionUser: { id: string; email?: string | undefined; email_confirmed_at?: string | null; confirmed_at?: string | null } | null): AuthUser | null {
+  if (!sessionUser) return null;
+  const verified = Boolean(sessionUser.email_confirmed_at ?? sessionUser.confirmed_at);
+  return { id: sessionUser.id, email: sessionUser.email ?? '', emailVerified: verified };
+}
 
 export function useAuth() {
   const [state, setState] = useState<AuthState>({ user: null, loading: true, error: null });
@@ -11,13 +17,11 @@ export function useAuth() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
-      setState({ user: session?.user ? { id: session.user.id, email: session.user.email ?? '' } : null, loading: false, error: null });
+      setState({ user: extractUser(session?.user ?? null), loading: false, error: null });
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setState({ user: session?.user ? { id: session.user.id, email: session.user.email ?? '' } : null, loading: false, error: null });
-      })();
+      setState({ user: extractUser(session?.user ?? null), loading: false, error: null });
     });
 
     return () => { subscription.subscription.unsubscribe(); };
@@ -31,14 +35,14 @@ export function useAuth() {
       setState({ user: null, loading: false, error: 'Check your email to confirm your account.' });
       return;
     }
-    setState({ user: data.session?.user ? { id: data.session.user.id, email: data.session.user.email ?? '' } : null, loading: false, error: null });
+    setState({ user: extractUser(data.session?.user ?? null), loading: false, error: null });
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     setState((current) => ({ ...current, loading: true, error: null }));
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setState({ user: null, loading: false, error: error.message }); return; }
-    setState({ user: data.user ? { id: data.user.id, email: data.user.email ?? '' } : null, loading: false, error: null });
+    setState({ user: extractUser(data.user ?? null), loading: false, error: null });
   }, []);
 
   const signOut = useCallback(async () => {
@@ -53,5 +57,12 @@ export function useAuth() {
     setState((current) => ({ ...current, loading: false, error: null }));
   }, []);
 
-  return { ...state, signUp, signIn, signOut, resetPassword };
+  const resendVerification = useCallback(async () => {
+    if (!state.user?.email) return { error: 'No email on file.' };
+    const { error } = await supabase.auth.resend({ type: 'signup', email: state.user.email });
+    if (error) return { error: error.message };
+    return { error: null };
+  }, [state.user?.email]);
+
+  return { ...state, signUp, signIn, signOut, resetPassword, resendVerification };
 }

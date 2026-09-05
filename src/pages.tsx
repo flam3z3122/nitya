@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ArrowRight, Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flame, LogOut, MoreHorizontal, Moon, Pencil, Settings2, Sparkles, Sun, Target, TrendingUp, UserRound, X } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowRight, Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flame, Loader2, LogOut, Mail, MoreHorizontal, Moon, Pencil, Settings2, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, Trash2, TrendingUp, UserRound, X } from 'lucide-react';
 import { calendarDays } from '@/data';
 import { HabitCard } from '@/components/HabitCard';
 import { ProgressCard } from '@/components/ProgressCard';
@@ -8,7 +8,7 @@ import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
-type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: () => void; onEditTask?: (id: string) => void; onEditHabit?: (id: string) => void; onEditGoal?: (id: string) => void; userName?: string };
+type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: () => void; userName?: string };
 
 const pageMeta: Record<Screen, { eyebrow: string; title: string }> = { today: { eyebrow: '', title: '' }, habits: { eyebrow: 'YOUR ROUTINES', title: 'Habits' }, calendar: { eyebrow: 'YOUR HISTORY', title: 'Calendar' }, statistics: { eyebrow: 'YOUR MOMENTUM', title: 'Statistics' }, profile: { eyebrow: 'YOUR SPACE', title: 'Profile' } };
 
@@ -18,7 +18,7 @@ function formatDate() { return new Date().toLocaleDateString('en-US', { weekday:
 
 export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
-export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, userName }: TodayProps) {
+export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onQuickAdd, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const visibleTasks = tasks.slice(0, 3);
   const remainingTasks = Math.max(0, tasks.length - visibleTasks.length);
@@ -34,7 +34,7 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                 <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
               </div>
               <div className="goal-list">
-                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} />)}
+                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} />)}
               </div>
             </section>
           )}
@@ -44,7 +44,7 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               <button className="text-button" onClick={() => onNavigate('calendar')}>View history <ArrowRight size={15} /></button>
             </div>
             <div className="task-list">
-              {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
+              {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} />)}
               {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('calendar')}>+{remainingTasks} more</button>}
             </div>
           </section>
@@ -54,7 +54,7 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               <button className="text-button" onClick={() => onNavigate('habits')}>Manage <ArrowRight size={15} /></button>
             </div>
             <div className="habit-list">
-              {habits.slice(0, 3).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={onToggleHabit} compact onEdit={onEditHabit} />)}
+              {habits.slice(0, 3).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={(id) => void onToggleHabit(id, !habit.completed)} compact />)}
             </div>
           </section>
         </div>
@@ -81,77 +81,159 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
   );
 }
 
-type HabitsProps = { habits: Habit[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void>; onQuickAdd?: () => void; onEdit?: (id: string) => void };
-export function HabitsPage({ habits, onToggle, onDelete, onQuickAdd, onEdit }: HabitsProps) {
-  const [filter, setFilter] = useState('All habits');
-
-  return (
-    <div className="page-content">
-      <PageHeader
-        screen="habits"
-        action={<button className="button button-dark" onClick={() => onQuickAdd ? onQuickAdd() : setFilter('All habits')}><span>+</span> New habit</button>}
-      />
-
-      <div className="subpage-intro">
-        <div className="mini-stat">
-          <div className="mini-stat-icon"><Flame size={18} /></div>
-          <div>
-            <strong>{Math.max(0, ...habits.map((habit) => habit.streak))} days</strong>
-            <span>longest current streak</span>
-          </div>
-        </div>
-        <div className="mini-stat">
-          <div className="mini-stat-icon blue"><TrendingUp size={18} /></div>
-          <div>
-            <strong>{habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%</strong>
-            <span>today&apos;s consistency</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="filter-row">
-        <button className={filter === 'All habits' ? 'filter active' : 'filter'} onClick={() => setFilter('All habits')}>All habits</button>
-        <button className={filter === 'Daily' ? 'filter active' : 'filter'} onClick={() => setFilter('Daily')}>Daily</button>
-        <button className={filter === 'Weekly' ? 'filter active' : 'filter'} onClick={() => setFilter('Weekly')}>Weekly</button>
-      </div>
-
-      <section className="habit-grid">
-        {habits
-          .filter((habit) => filter === 'All habits' || (filter === 'Daily' ? habit.frequency === 'Daily' : habit.frequency !== 'Daily'))
-          .map((habit) => (
-          <HabitCard key={habit.id} habit={habit} onToggle={onToggle} onDelete={(id) => void onDelete(id)} onEdit={onEdit} />
-        ))}
-      </section>
-    </div>
-  );
-}
+type HabitsProps = { habits: Habit[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void> };
+export function HabitsPage({ habits, onToggle, onDelete }: HabitsProps) { const [filter, setFilter] = useState('All habits'); return <div className="page-content"><PageHeader screen="habits" action={<button className="button button-dark" onClick={() => setFilter('All habits')}><span>+</span> New habit</button>} /><div className="subpage-intro"><div className="mini-stat"><div className="mini-stat-icon"><Flame size={18} /></div><div><strong>{Math.max(0, ...habits.map((habit) => habit.streak))} days</strong><span>longest current streak</span></div></div><div className="mini-stat"><div className="mini-stat-icon blue"><TrendingUp size={18} /></div><div><strong>{habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%</strong><span>today&apos;s consistency</span></div></div></div><div className="filter-row"><button className={filter === 'All habits' ? 'filter active' : 'filter'} onClick={() => setFilter('All habits')}>All habits</button><button className={filter === 'Daily' ? 'filter active' : 'filter'} onClick={() => setFilter('Daily')}>Daily</button><button className={filter === 'Weekly' ? 'filter active' : 'filter'} onClick={() => setFilter('Weekly')}>Weekly</button></div><section className="habit-grid">{habits.filter((habit) => filter === 'All habits' || (filter === 'Daily' ? habit.frequency === 'Daily' : habit.frequency !== 'Daily')).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={(id) => void onToggle(id, !habit.completed)} onDelete={(id) => void onDelete(id)} />)}</section></div>; }
 
 export function CalendarPage({ completions }: { completions: string[] }) { const [selected, setSelected] = useState(24); const weeks = useMemo(() => Array.from({ length: 5 }, (_, week) => calendarDays.slice(week * 7, week * 7 + 7)), []); return <div className="page-content"><PageHeader screen="calendar" action={<button className="icon-button" aria-label="Calendar settings"><MoreHorizontal size={19} /></button>} /><div className="calendar-layout"><section className="calendar-card"><div className="calendar-top"><button className="icon-button" aria-label="Previous month"><ChevronLeft size={18} /></button><div><strong>August 2026</strong><span>Today</span></div><button className="icon-button" aria-label="Next month"><ChevronRight size={18} /></button></div><div className="weekday-row">{['MON','TUE','WED','THU','FRI','SAT','SUN'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{weeks.flat().map((day) => <button key={day} className={`calendar-day ${selected === day ? 'selected' : ''} ${completions.length > 0 && [3, 7, 11, 16, 19, 24, 26, 29].includes(day) ? 'has-activity' : ''}`} onClick={() => setSelected(day)}>{day}<i /></button>)}</div><div className="calendar-legend"><span><i className="legend-dot filled" /> Completed day</span><span><i className="legend-dot" /> Planned activity</span></div></section><section className="day-detail"><div className="detail-date"><div><p className="eyebrow">MONDAY</p><h2>August {selected}</h2></div><div className="date-number">{selected}</div></div><div className="detail-progress"><div><span>Daily completion</span><strong>80%</strong></div><div className="progress-track"><div className="progress-fill" style={{ width: '80%' }} /></div></div><div className="detail-items"><p className="eyebrow">ACTIVITY</p><div className="detail-item"><span className="detail-item-icon green"><CalendarCheck size={17} /></span><div><strong>{completions.length} habit completions recorded</strong><small>Your history is building</small></div><span className="detail-check">&check;</span></div><div className="detail-item"><span className="detail-item-icon yellow"><Flame size={17} /></span><div><strong>Keep your rhythm going</strong><small>Small steps add up</small></div></div></div></section></div></div>; }
 
 export function StatisticsPage({ tasks, habits }: { tasks: Task[]; habits: Habit[] }) { const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length; const total = tasks.length + habits.length; const score = total ? Math.round((completed / total) * 100) : 0; return <div className="page-content"><PageHeader screen="statistics" action={<button className="button button-light"><Clock3 size={15} /> This month</button>} /><div className="score-banner"><div><p className="eyebrow light">YOUR DAILY SCORE</p><h2>{(score / 10).toFixed(1)} <span>/ 10</span></h2><p>Based on your completed tasks and habits today.</p></div><div className="score-ring"><strong>{score}</strong><span>score</span></div></div><section className="stats-grid"><StatsCard label="Current streak" value={`${Math.max(0, ...habits.map((habit) => habit.streak))} days`} helper="From habit history" icon={<Flame size={19} />} tone="orange" /><StatsCard label="Completed today" value={`${completed}`} helper={`of ${total} items`} icon={<Target size={19} />} tone="blue" /><StatsCard label="Habit consistency" value={`${habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%`} helper="Today&apos;s completion" icon={<TrendingUp size={19} />} tone="green" /></section><section className="chart-card"><div className="section-heading"><div><p className="eyebrow">WEEKLY MOMENTUM</p><h2>Activity overview</h2></div><button className="icon-button subtle"><MoreHorizontal size={18} /></button></div><div className="bar-chart">{[55, 72, 48, 86, 64, 92, 76].map((height, index) => <div className="bar-column" key={index}><div className={`bar ${index === 4 ? 'highlight' : ''}`} style={{ height: `${height}%` }} /><span>{['M','T','W','T','F','S','S'][index]}</span></div>)}</div></section><section className="consistency-card"><div><p className="eyebrow">MONTHLY PROGRESS</p><h2>A month of momentum</h2></div><div className="month-row">{Array.from({ length: 30 }, (_, i) => <i key={i} className={i < Math.min(20, completed + 10) ? 'complete' : i < 24 ? 'partial' : ''} />)}</div><div className="consistency-footer"><span>{completed} completed today</span><strong>{score}%</strong></div></section></div>; }
 
-export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile }: { profile: ProfileSettings | null; authEmail: string; onSignOut: () => void; onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => Promise<void> }) {
+type ProfilePageProps = {
+  profile: ProfileSettings | null;
+  authEmail: string;
+  emailVerified: boolean;
+  onSignOut: () => void;
+  onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => Promise<void>;
+  onResendVerification: () => Promise<{ error: string | null }>;
+  onDeleteAccount: () => Promise<void>;
+};
+
+type Toast = { id: number; message: string; tone: 'success' | 'error' };
+
+export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification, onDeleteAccount }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [tzOpen, setTzOpen] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const name = profile?.name ?? 'Your name';
   const email = profile?.email ?? authEmail ?? '';
-  const themes: ProfileSettings['theme'][] = ['Light', 'Dark'];
+  const themes: ProfileSettings['theme'][] = ['Light', 'Dark', 'System'];
+  const timezones = ['Pacific Time', 'Mountain Time', 'Central Time', 'Eastern Time', 'Greenwich Mean Time', 'Central European Time', 'India Standard Time', 'Japan Standard Time'];
+
+  const showToast = useCallback((message: string, tone: 'success' | 'error') => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current, { id, message, tone }]);
+    setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), 4000);
+  }, []);
 
   const saveName = async () => { if (!nameValue.trim()) return; setNameSaving(true); await onUpdateProfile({ name: nameValue.trim() }); setNameSaving(false); setEditingName(false); };
   const setTheme = async (theme: ProfileSettings['theme']) => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
+  const setTimezone = async (timezone: string) => { setTzOpen(false); setSavingKey('timezone'); await onUpdateProfile({ timezone }); setSavingKey(null); };
+  const toggleNotifications = async () => { const next = !profile?.notifications_enabled; setSavingKey('notifications'); await onUpdateProfile({ notifications_enabled: next }); setSavingKey(null); };
+
+  const handleResend = async () => {
+    setResending(true);
+    const result = await onResendVerification();
+    setResending(false);
+    if (result.error) showToast(result.error, 'error');
+    else showToast('Verification email sent. Check your inbox.', 'success');
+  };
+
+  const handleDelete = async () => {
+    if (deleteConfirm !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await onDeleteAccount();
+      showToast('Account deleted successfully.', 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not delete account.';
+      showToast(message, 'error');
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => { if (!deleting) { setDeleteOpen(false); setDeleteConfirm(''); } };
 
   return <div className="page-content"><PageHeader screen="profile" />
     {editingName ? <section className="profile-card editing"><div className="avatar avatar-large">{(nameValue || 'A').split(' ').map((p) => p[0]).join('').slice(0, 2)}</div><div className="profile-edit-form"><input className="profile-name-input" value={nameValue} onChange={(e) => setNameValue(e.target.value)} placeholder="Your name" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); }} /><div className="profile-edit-actions"><button className="button button-dark" disabled={nameSaving || !nameValue.trim()} onClick={() => void saveName()}>{nameSaving ? 'Saving\u2026' : 'Save'}</button><button className="icon-button" onClick={() => { setEditingName(false); setNameValue(profile?.name ?? ''); }} aria-label="Cancel"><X size={17} /></button></div></div></section>
     : <section className="profile-card"><div className="avatar avatar-large">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><div><h2>{name}</h2><p>{email}</p><span className="member-pill"><Sparkles size={12} /> Personal workspace</span></div><button className="icon-button profile-edit-btn" onClick={() => { setNameValue(profile?.name ?? ''); setEditingName(true); }} aria-label="Edit name"><Pencil size={16} /></button></section>}
+
+    <section className="settings-section"><p className="eyebrow">EMAIL</p><div className="settings-card">
+      <div className="setting-row email-row">
+        <span className="setting-icon"><Mail size={18} /></span>
+        <div className="email-row-content">
+          <span className="setting-title">{email}</span>
+          <span className={`verify-badge ${emailVerified ? 'verified' : 'unverified'}`}>
+            {emailVerified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+            {emailVerified ? 'Verified' : 'Unverified'}
+          </span>
+        </div>
+      </div>
+      {!emailVerified && (
+        <div className="resend-section">
+          <button className="resend-btn" disabled={resending} onClick={() => void handleResend()}>
+            {resending ? <Loader2 size={15} className="spin" /> : <Mail size={15} />}
+            {resending ? 'Sending\u2026' : 'Resend verification email'}
+          </button>
+        </div>
+      )}
+    </div></section>
+
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
       <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : profile?.theme ?? 'Light'}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
-      {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${profile?.theme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{profile?.theme === t && <Check size={15} />}</button>)}</div>}
+      {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${profile?.theme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : t === 'Dark' ? <Moon size={15} /> : <Settings2 size={15} />}</span>{t}{profile?.theme === t && <Check size={15} />}</button>)}</div>}
+      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">Notifications</span><span className={`toggle ${profile?.notifications_enabled ? 'on' : 'off'}`}><i /></span></button>
+      <button className="setting-row" onClick={() => setTzOpen((v) => !v)}><span className="setting-icon"><Clock3 size={18} /></span><span className="setting-title">Timezone</span><span className="setting-value">{savingKey === 'timezone' ? 'Saving\u2026' : profile?.timezone ?? 'Pacific Time'}</span>{tzOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
+      {tzOpen && <div className="setting-options scroll">{timezones.map((tz) => <button key={tz} className={`setting-option ${profile?.timezone === tz ? 'active' : ''}`} onClick={() => void setTimezone(tz)}>{tz}{profile?.timezone === tz && <Check size={15} />}</button>)}</div>}
     </div></section>
-    <section className="settings-section"><p className="eyebrow">ACCOUNT</p><div className="settings-card"><SettingRow icon={<CircleHelp size={18} />} title="Help & support" value="" /></div></section>
+
+    <section className="settings-section"><p className="eyebrow">ACCOUNT</p><div className="settings-card"><SettingRow icon={<UserRound size={18} />} title="Personal details" value="" /><SettingRow icon={<Settings2 size={18} />} title="Manage account" value="" /><SettingRow icon={<CircleHelp size={18} />} title="Help & support" value="" /></div></section>
+
+    <section className="settings-section danger-section"><p className="eyebrow danger-eyebrow">DANGER ZONE</p>
+      <div className="danger-card">
+        <div className="danger-info">
+          <span className="danger-icon"><AlertTriangle size={18} /></span>
+          <div>
+            <strong>Delete account</strong>
+            <p>Permanently remove your account and all associated data. This cannot be undone.</p>
+          </div>
+        </div>
+        <button className="danger-btn" onClick={() => setDeleteOpen(true)}><Trash2 size={15} /> Delete</button>
+      </div>
+    </section>
+
     <button className="logout-button" onClick={onSignOut}><LogOut size={17} /> Log out</button>
+
+    {deleteOpen && (
+      <div className="modal-overlay" onClick={closeDeleteModal}>
+        <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="delete-modal-header">
+            <span className="delete-modal-icon"><AlertTriangle size={24} /></span>
+            <h3>Delete account?</h3>
+          </div>
+          <p className="delete-modal-body">This will permanently delete your account, all tasks, habits, goals, and history. This action <strong>cannot be undone</strong>.</p>
+          <div className="delete-confirm-field">
+            <label>Type <strong>DELETE</strong> to confirm</label>
+            <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" autoFocus disabled={deleting} onKeyDown={(e) => { if (e.key === 'Enter' && deleteConfirm === 'DELETE') void handleDelete(); }} />
+          </div>
+          <div className="delete-modal-actions">
+            <button className="button button-light" onClick={closeDeleteModal} disabled={deleting}>Cancel</button>
+            <button className="danger-btn confirm" disabled={deleteConfirm !== 'DELETE' || deleting} onClick={() => void handleDelete()}>
+              {deleting ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
+              {deleting ? 'Deleting\u2026' : 'Delete account'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {toasts.length > 0 && (
+      <div className="toast-container">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast ${t.tone}`}>
+            {t.tone === 'success' ? <Check size={16} /> : <AlertTriangle size={16} />}
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
+    )}
   </div>;
 }
 
