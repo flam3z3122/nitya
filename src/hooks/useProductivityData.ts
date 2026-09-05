@@ -7,22 +7,15 @@ type HabitRow = { id: string; name: string; icon: string; color: Habit['color'];
 type GoalRow = { id: string; title: string };
 type CompletionRow = { habit_id: string; completed_on: string };
 
-const initialState: DataState = { tasks: [], habits: [], goals: [], completionRows: [], completions: [], profile: null, loading: true, error: null };
+const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null };
 
 function calculateStreak(habitId: string, completions: CompletionRow[]): number {
-  const dates = completions.filter((item) => item.habit_id === habitId).map((item) => item.completed_on);
-  if (dates.length === 0) return 0;
-  const dateSet = new Set(dates);
-  // Start from today if completed today, otherwise start from the most recent completion
-  const today = new Date().toISOString().slice(0, 10);
-  let cursorDate = dateSet.has(today) ? today : dates.slice().sort().pop() as string;
+  const dates = new Set(completions.filter((item) => item.habit_id === habitId).map((item) => item.completed_on));
   let streak = 0;
-  // walk backwards counting consecutive days
-  while (dateSet.has(cursorDate)) {
+  const cursor = new Date();
+  while (dates.has(cursor.toISOString().slice(0, 10))) {
     streak += 1;
-    const d = new Date(cursorDate);
-    d.setDate(d.getDate() - 1);
-    cursorDate = d.toISOString().slice(0, 10);
+    cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
 }
@@ -32,9 +25,9 @@ function toFriendlyError(message: string): string {
 }
 
 async function ensureProfile(userId: string, email: string): Promise<ProfileSettings | null> {
-  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme, onboarded').eq('user_id', userId).maybeSingle();
+  const { data: existing } = await supabase.from('profile_settings').select('name, email, theme, notifications_enabled, timezone, onboarded').eq('user_id', userId).maybeSingle();
   if (existing) return existing as ProfileSettings;
-  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme, onboarded').maybeSingle();
+  const { data: created, error } = await supabase.from('profile_settings').insert({ user_id: userId, email }).select('name, email, theme, notifications_enabled, timezone, onboarded').maybeSingle();
   if (error || !created) return null;
   return created as ProfileSettings;
 }
@@ -66,22 +59,14 @@ export function useProductivityData(userId: string | null) {
     const habitRows = (habitsResult.data ?? []) as HabitRow[];
     const goalRows = (goalsResult.data ?? []) as GoalRow[];
     const completionRows = (completionsResult.data ?? []) as CompletionRow[];
-    // Normalize timestamps to YYYY-MM-DD to avoid mismatches between full ISO strings and date-only strings
-    const normalizedCompletionRows = completionRows.map((c) => ({ habit_id: c.habit_id, completed_on: c.completed_on.slice(0, 10) }));
     const today = new Date().toISOString().slice(0, 10);
     const sessionUser = profileResult as { id: string; email: string } | null;
     const profile = sessionUser ? await ensureProfile(sessionUser.id, sessionUser.email) : null;
     setState({
       tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime' })),
-      habits: habitRows.map((habit) => ({
-        ...habit,
-        completed: normalizedCompletionRows.some((item) => item.habit_id === habit.id && item.completed_on === today),
-        streak: calculateStreak(habit.id, normalizedCompletionRows),
-        history: normalizedCompletionRows.filter((c) => c.habit_id === habit.id).map((c) => c.completed_on),
-      })),
+      habits: habitRows.map((habit) => ({ ...habit, completed: completionRows.some((item) => item.habit_id === habit.id && item.completed_on === today), streak: calculateStreak(habit.id, completionRows) })),
       goals: goalRows.map((goal) => ({ id: goal.id, title: goal.title })),
-      completionRows: normalizedCompletionRows,
-      completions: Array.from(new Set(normalizedCompletionRows.map((item) => item.completed_on))),
+      completions: completionRows.map((item) => item.completed_on),
       profile,
       loading: false,
       error: null,
@@ -102,13 +87,7 @@ export function useProductivityData(userId: string | null) {
       ? await supabase.from('habit_completions').upsert({ habit_id: id, completed_on: today }, { onConflict: 'user_id,habit_id,completed_on' })
       : await supabase.from('habit_completions').delete().eq('habit_id', id).eq('completed_on', today);
     if (result.error) { setState((current) => ({ ...current, error: 'That habit could not be updated. Please try again.' })); return; }
-    setState((current) => {
-      // ensure completed_on values are normalized and deduplicated
-      const filtered = current.completionRows.filter((c) => !(c.habit_id === id && c.completed_on === today));
-      const newCompletionRows = completed ? [{ habit_id: id, completed_on: today }, ...filtered] : filtered;
-      const newHabits = current.habits.map((habit) => habit.id === id ? { ...habit, completed, streak: calculateStreak(habit.id, newCompletionRows), history: newCompletionRows.filter((c) => c.habit_id === habit.id).map((c) => c.completed_on) } : habit);
-      return { ...current, habits: newHabits, completionRows: newCompletionRows, completions: Array.from(new Set(newCompletionRows.map((c) => c.completed_on))) };
-    });
+    setState((current) => ({ ...current, habits: current.habits.map((habit) => habit.id === id ? { ...habit, completed, streak: completed ? habit.streak + 1 : Math.max(0, habit.streak - 1) } : habit), completions: completed ? [today, ...current.completions] : current.completions.filter((date) => date !== today) }));
   }, []);
 
   const createTask = useCallback(async (title: string) => {
@@ -129,14 +108,14 @@ export function useProductivityData(userId: string | null) {
     const { data, error } = await supabase.from('habits').insert({ name, icon: '✦', color: 'mint', frequency: 'Daily' }).select('id, name, icon, color, frequency').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0, history: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
   }, []);
 
   const createHabitWithDetails = useCallback(async (name: string, icon: string, color: string, frequency: string) => {
     const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0, history: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0 }] }));
   }, []);
 
   const deleteTask = useCallback(async (id: string) => {
@@ -157,27 +136,6 @@ export function useProductivityData(userId: string | null) {
     setState((current) => ({ ...current, goals: current.goals.filter((goal) => goal.id !== id) }));
   }, []);
 
-  const updateTask = useCallback(async (id: string, updates: Partial<{ title: string; category: string; priority: Task['priority']; due_label: string | null }>) => {
-    const { data, error } = await supabase.from('tasks').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select('id, title, category, priority, due_label, completed').maybeSingle();
-    if (error || !data) { setState((current) => ({ ...current, error: 'Task could not be updated. Please try again.' })); return; }
-    const taskRow = data as TaskRow;
-    setState((current) => ({ ...current, tasks: current.tasks.map((t) => t.id === id ? { ...taskRow, time: taskRow.due_label ?? 'Anytime' } : t) }));
-  }, []);
-
-  const updateHabit = useCallback(async (id: string, updates: Partial<{ name: string; icon: string; color: Habit['color']; frequency: string }>) => {
-    const { data, error } = await supabase.from('habits').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select('id, name, icon, color, frequency').maybeSingle();
-    if (error || !data) { setState((current) => ({ ...current, error: 'Habit could not be updated. Please try again.' })); return; }
-    const habitRow = data as HabitRow;
-    setState((current) => ({ ...current, habits: current.habits.map((h) => h.id === id ? { ...h, name: habitRow.name, icon: habitRow.icon, color: habitRow.color, frequency: habitRow.frequency } : h) }));
-  }, []);
-
-  const updateGoal = useCallback(async (id: string, updates: Partial<{ title: string }>) => {
-    const { data, error } = await supabase.from('goals').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select('id, title').maybeSingle();
-    if (error || !data) { setState((current) => ({ ...current, error: 'Goal could not be updated. Please try again.' })); return; }
-    const goalRow = data as GoalRow;
-    setState((current) => ({ ...current, goals: current.goals.map((g) => g.id === id ? { id: goalRow.id, title: goalRow.title } : g) }));
-  }, []);
-
   const completeOnboarding = useCallback(async (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => {
     if (!userId) return;
     const { error: profileError } = await supabase.from('profile_settings').update({ name, onboarded: true, updated_at: new Date().toISOString() }).eq('user_id', userId);
@@ -186,16 +144,31 @@ export function useProductivityData(userId: string | null) {
       const { error: habitsError } = await supabase.from('habits').insert(selectedHabits.map((h) => ({ name: h.name, icon: h.icon, color: h.color, frequency: h.frequency })));
       if (habitsError) throw new Error('Could not save your habits.');
     }
-    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0, history: [] }))] }));
+    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0 }))] }));
   }, [userId]);
- 
 
-    const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => {
+  const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
     if (!userId) return;
     const { error } = await supabase.from('profile_settings').update({ ...updates, updated_at: new Date().toISOString() }).eq('user_id', userId);
     if (error) { setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' })); return; }
     setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, ...updates } : current.profile }));
   }, [userId]);
 
-  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createHabitWithDetails, createGoal, deleteTask, deleteHabit, deleteGoal, updateTask, updateHabit, updateGoal, updateProfile, completeOnboarding };
+  const deleteAccount = useCallback(async () => {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error('You must be signed in to delete your account.');
+    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const response = await fetch(`${baseUrl}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error ?? 'Could not delete account. Please try again or contact support.');
+    }
+  }, []);
+
+  return { ...state, reload: load, toggleTask, toggleHabit, createTask, createHabit, createHabitWithDetails, createGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding, deleteAccount };
 }
