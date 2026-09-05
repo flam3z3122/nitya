@@ -13,24 +13,40 @@
 .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
 .tooltip .tooltip-text::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: #213b31 transparent transparent transparent; }
 
-/* Modal styles */
-.modal-card { background: var(--panel); color: var(--text); width: min(460px, 92vw); border-radius: 14px; padding: 20px; box-shadow: 0 18px 50px rgba(11,30,22,0.42); border: 1px solid rgba(0,0,0,0.04); transition: transform .16s ease, opacity .12s ease; transform: translateY(0); }
-.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px; }
-.modal-body { margin-bottom:12px; }
-.modal-actions { display:flex; gap:8px; justify-content:flex-end; }
-.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.form-grid label { display:flex; flex-direction:column; gap:6px; font-size:13px; }
-.form-grid input, .form-grid select { padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.08); background: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7); width:100%; font: inherit; color: var(--text); }
-
-.modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
-.modal-header .icon-button { width:36px; height:36px; border-radius:10px; background: transparent; border: 1px solid rgba(0,0,0,0.04); }
-.modal-card .form-grid label small { color: var(--muted); font-size: 12px; }
-.modal-actions .button { min-width: 84px; padding: 8px 12px; border-radius: 10px; }
-.modal-actions .button-dark { background: var(--ink); color: #fff; border-radius: 10px; padding: 9px 14px; }
-
-/* Inputs in dark mode */
-.dark .form-grid input, .dark .form-grid select { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.04); color: var(--text); box-shadow: none; }
-.dark .modal-card { border-color: rgba(255,255,255,0.03); }
+.edit-modal { width: min(440px, 92vw); background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px 22px 20px; box-shadow: 0 20px 60px #1c282533; animation: slide-up .25s ease; }
+.edit-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.edit-modal-heading { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.edit-modal-heading .quick-icon { flex: 0 0 auto; margin-top: 1px; }
+.edit-modal-heading h3 { margin: 5px 0 0; font: 700 17px/1.25 'Manrope', sans-serif; letter-spacing: -.4px; color: var(--ink); }
+.edit-modal-body { display: grid; gap: 14px; }
+.edit-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.edit-field > span { font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: #8b9893; }
+.edit-field-row { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; align-items: start; }
+.edit-habit-preview { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: end; }
+.edit-habit-preview .habit-icon { width: 48px; height: 48px; border-radius: 14px; font-size: 22px; }
+.edit-chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.edit-choice, .edit-icon-chip, .edit-color-chip, .edit-priority { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid #e4ede7; background: #f7f9f7; color: #5a6964; font-size: 12px; font-weight: 600; transition: .15s ease; }
+.edit-choice:hover, .edit-icon-chip:hover, .edit-color-chip:hover, .edit-priority:hover { background: #eef5f0; border-color: #c5e0d3; color: #35755f; }
+.edit-choice.is-active { background: #e2f0e8; border-color: #b7d8c7; color: #35755f; }
+.edit-icon-chip { width: 36px; padding: 0; font-size: 16px; }
+.edit-icon-chip.is-active { background: #e8f3ed; border-color: #4f9c80; box-shadow: 0 0 0 3px #e2f1e8; }
+.edit-color-chip { padding: 0 11px 0 9px; }
+.edit-color-chip i { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.edit-color-chip.is-active { box-shadow: 0 0 0 3px #e2f1e8; border-color: currentColor; }
+.edit-priority { padding: 0 10px; }
+.edit-priority.is-active { box-shadow: 0 0 0 3px #faefe6; border-color: currentColor; }
+.edit-priority.priority-high.is-active { box-shadow: 0 0 0 3px #ffebe7; }
+.edit-priority.priority-low.is-active { box-shadow: 0 0 0 3px #edf4ef; }
+.edit-modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+.edit-modal-actions .button { flex: 1; justify-content: center; min-height: 42px; }
+.dark .edit-modal { background: #07141a; border-color: rgba(255,255,255,0.03); box-shadow: 0 20px 60px #00000066; }
+.dark .edit-modal .quick-input { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); color: var(--ink); }
+.dark .edit-modal .quick-input:focus { border-color: #3fa074; box-shadow: 0 0 0 3px rgba(63,160,116,0.16); }
+.dark .edit-choice, .dark .edit-icon-chip, .dark .edit-color-chip, .dark .edit-priority { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: var(--ink); }
+.dark .edit-choice:hover, .dark .edit-icon-chip:hover, .dark .edit-color-chip:hover, .dark .edit-priority:hover { background: rgba(63,160,116,0.1); border-color: rgba(63,160,116,0.28); }
+.dark .edit-choice.is-active, .dark .edit-icon-chip.is-active { background: rgba(63,160,116,0.14); border-color: var(--green); color: var(--green); box-shadow: none; }
+.dark .edit-field > span { color: var(--muted); }
+@media (max-width: 430px) { .edit-modal { padding: 18px 16px 16px; } .edit-field-row { grid-template-columns: 1fr; } .edit-habit-preview { grid-template-columns: 1fr; } }
 
 /* Overflow menu */
 .overflow-menu { position: relative; }

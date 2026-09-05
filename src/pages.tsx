@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flame, Loader2, LogOut, Mail, MoreHorizontal, Moon, Pencil, Settings2, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, Trash2, TrendingUp, UserRound, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronLeft, ChevronRight, Clock3, Flame, Loader2, LogOut, Mail, MoreHorizontal, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, TrendingUp, X } from 'lucide-react';
 import { calendarDays } from '@/data';
 import { HabitCard } from '@/components/HabitCard';
 import { ProgressCard } from '@/components/ProgressCard';
@@ -93,29 +93,24 @@ type ProfilePageProps = {
   authEmail: string;
   emailVerified: boolean;
   onSignOut: () => void;
-  onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => Promise<void>;
+  onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => Promise<void>;
   onResendVerification: () => Promise<{ error: string | null }>;
-  onDeleteAccount: () => Promise<void>;
 };
 
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
-export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification, onDeleteAccount }: ProfilePageProps) {
+export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
-  const [tzOpen, setTzOpen] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState('');
-  const [deleting, setDeleting] = useState(false);
   const name = profile?.name ?? 'Your name';
   const email = profile?.email ?? authEmail ?? '';
-  const themes: ProfileSettings['theme'][] = ['Light', 'Dark', 'System'];
-  const timezones = ['Pacific Time', 'Mountain Time', 'Central Time', 'Eastern Time', 'Greenwich Mean Time', 'Central European Time', 'India Standard Time', 'Japan Standard Time'];
+  const themes: Array<'Light' | 'Dark'> = ['Light', 'Dark'];
+  const activeTheme: 'Light' | 'Dark' = profile?.theme === 'Dark' ? 'Dark' : 'Light';
 
   const showToast = useCallback((message: string, tone: 'success' | 'error') => {
     const id = Date.now() + Math.random();
@@ -124,9 +119,7 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
   }, []);
 
   const saveName = async () => { if (!nameValue.trim()) return; setNameSaving(true); await onUpdateProfile({ name: nameValue.trim() }); setNameSaving(false); setEditingName(false); };
-  const setTheme = async (theme: ProfileSettings['theme']) => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
-  const setTimezone = async (timezone: string) => { setTzOpen(false); setSavingKey('timezone'); await onUpdateProfile({ timezone }); setSavingKey(null); };
-  const toggleNotifications = async () => { const next = !profile?.notifications_enabled; setSavingKey('notifications'); await onUpdateProfile({ notifications_enabled: next }); setSavingKey(null); };
+  const setTheme = async (theme: 'Light' | 'Dark') => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
 
   const handleResend = async () => {
     setResending(true);
@@ -135,21 +128,6 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     if (result.error) showToast(result.error, 'error');
     else showToast('Verification email sent. Check your inbox.', 'success');
   };
-
-  const handleDelete = async () => {
-    if (deleteConfirm !== 'DELETE') return;
-    setDeleting(true);
-    try {
-      await onDeleteAccount();
-      showToast('Account deleted successfully.', 'success');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not delete account.';
-      showToast(message, 'error');
-      setDeleting(false);
-    }
-  };
-
-  const closeDeleteModal = () => { if (!deleting) { setDeleteOpen(false); setDeleteConfirm(''); } };
 
   return <div className="page-content"><PageHeader screen="profile" />
     {editingName ? <section className="profile-card editing"><div className="avatar avatar-large">{(nameValue || 'A').split(' ').map((p) => p[0]).join('').slice(0, 2)}</div><div className="profile-edit-form"><input className="profile-name-input" value={nameValue} onChange={(e) => setNameValue(e.target.value)} placeholder="Your name" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); }} /><div className="profile-edit-actions"><button className="button button-dark" disabled={nameSaving || !nameValue.trim()} onClick={() => void saveName()}>{nameSaving ? 'Saving\u2026' : 'Save'}</button><button className="icon-button" onClick={() => { setEditingName(false); setNameValue(profile?.name ?? ''); }} aria-label="Cancel"><X size={17} /></button></div></div></section>
@@ -177,52 +155,11 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     </div></section>
 
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
-      <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : profile?.theme ?? 'Light'}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
-      {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${profile?.theme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : t === 'Dark' ? <Moon size={15} /> : <Settings2 size={15} />}</span>{t}{profile?.theme === t && <Check size={15} />}</button>)}</div>}
-      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">Notifications</span><span className={`toggle ${profile?.notifications_enabled ? 'on' : 'off'}`}><i /></span></button>
-      <button className="setting-row" onClick={() => setTzOpen((v) => !v)}><span className="setting-icon"><Clock3 size={18} /></span><span className="setting-title">Timezone</span><span className="setting-value">{savingKey === 'timezone' ? 'Saving\u2026' : profile?.timezone ?? 'Pacific Time'}</span>{tzOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
-      {tzOpen && <div className="setting-options scroll">{timezones.map((tz) => <button key={tz} className={`setting-option ${profile?.timezone === tz ? 'active' : ''}`} onClick={() => void setTimezone(tz)}>{tz}{profile?.timezone === tz && <Check size={15} />}</button>)}</div>}
+      <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : activeTheme}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
+      {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${activeTheme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{activeTheme === t && <Check size={15} />}</button>)}</div>}
     </div></section>
 
-    <section className="settings-section"><p className="eyebrow">ACCOUNT</p><div className="settings-card"><SettingRow icon={<UserRound size={18} />} title="Personal details" value="" /><SettingRow icon={<Settings2 size={18} />} title="Manage account" value="" /><SettingRow icon={<CircleHelp size={18} />} title="Help & support" value="" /></div></section>
-
-    <section className="settings-section danger-section"><p className="eyebrow danger-eyebrow">DANGER ZONE</p>
-      <div className="danger-card">
-        <div className="danger-info">
-          <span className="danger-icon"><AlertTriangle size={18} /></span>
-          <div>
-            <strong>Delete account</strong>
-            <p>Permanently remove your account and all associated data. This cannot be undone.</p>
-          </div>
-        </div>
-        <button className="danger-btn" onClick={() => setDeleteOpen(true)}><Trash2 size={15} /> Delete</button>
-      </div>
-    </section>
-
     <button className="logout-button" onClick={onSignOut}><LogOut size={17} /> Log out</button>
-
-    {deleteOpen && (
-      <div className="modal-overlay" onClick={closeDeleteModal}>
-        <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="delete-modal-header">
-            <span className="delete-modal-icon"><AlertTriangle size={24} /></span>
-            <h3>Delete account?</h3>
-          </div>
-          <p className="delete-modal-body">This will permanently delete your account, all tasks, habits, goals, and history. This action <strong>cannot be undone</strong>.</p>
-          <div className="delete-confirm-field">
-            <label>Type <strong>DELETE</strong> to confirm</label>
-            <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" autoFocus disabled={deleting} onKeyDown={(e) => { if (e.key === 'Enter' && deleteConfirm === 'DELETE') void handleDelete(); }} />
-          </div>
-          <div className="delete-modal-actions">
-            <button className="button button-light" onClick={closeDeleteModal} disabled={deleting}>Cancel</button>
-            <button className="danger-btn confirm" disabled={deleteConfirm !== 'DELETE' || deleting} onClick={() => void handleDelete()}>
-              {deleting ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
-              {deleting ? 'Deleting\u2026' : 'Delete account'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
 
     {toasts.length > 0 && (
       <div className="toast-container">
@@ -236,5 +173,3 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     )}
   </div>;
 }
-
-function SettingRow({ icon, title, value, toggle = false }: { icon: React.ReactNode; title: string; value: string; toggle?: boolean }) { return <button className="setting-row"><span className="setting-icon">{icon}</span><span className="setting-title">{title}</span>{toggle ? <span className="toggle on"><i /></span> : <><span className="setting-value">{value}</span><ChevronRight size={16} className="setting-arrow" /></>}</button>; }
