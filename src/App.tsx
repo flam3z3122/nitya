@@ -6,10 +6,10 @@ import { OnboardingScreen } from '@/components/OnboardingScreen';
 import { TodayPage, HabitsPage, CalendarPage, StatisticsPage, ProfilePage } from '@/pages';
 import { useAuth } from '@/hooks/useAuth';
 import { useProductivityData } from '@/hooks/useProductivityData';
-import type { Screen } from '@/types';
+import { useHashRoute } from '@/hooks/useHashRoute';
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('today');
+  const [screen, setScreen] = useHashRoute();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const auth = useAuth();
