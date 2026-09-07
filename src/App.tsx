@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useProductivityData } from '@/hooks/useProductivityData';
 import { useHashRoute } from '@/hooks/useHashRoute';
+import { useReminders } from '@/hooks/useReminders';
 import type { Goal, Habit, Task } from '@/types';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
 
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
+  useReminders(data.habits, data.profile?.notifications_enabled !== false);
 
   useEffect(() => {
     const mode = data.profile?.theme ?? 'Light';
@@ -66,7 +68,7 @@ function App() {
     }
 
     if (editType === 'habit') {
-      await data.updateHabit(id, updates as Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency'>>);
+      await data.updateHabit(id, updates as Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>>);
     }
 
     if (editType === 'goal') {
@@ -155,7 +157,7 @@ function App() {
         onEdit={(id) => openEdit('habit', id)}
       />
     ) : screen === 'calendar' ? (
-      <CalendarPage completions={data.completions} />
+      <CalendarPage habits={data.habits} />
     ) : screen === 'statistics' ? (
       <StatisticsPage
         tasks={data.tasks}

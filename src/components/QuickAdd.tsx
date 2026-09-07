@@ -27,14 +27,15 @@ export function QuickAdd({ open, onClose, onCreateTask, onCreateHabit, onCreateG
     onClose();
   };
 
-  const submit = async () => {
-    if (!value.trim() || !type) return;
+  const submit = async (raw?: string) => {
+    const next = (raw ?? value).trim();
+    if (!next || !type) return;
     setSaving(true);
     setError(null);
     try {
-      if (type === 'task') await onCreateTask(value.trim());
-      if (type === 'habit') await onCreateHabit(value.trim());
-      if (type === 'goal') await onCreateGoal(value.trim());
+      if (type === 'task') await onCreateTask(next);
+      if (type === 'habit') await onCreateHabit(next);
+      if (type === 'goal') await onCreateGoal(next);
       close();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Could not save this item.');
@@ -43,10 +44,7 @@ export function QuickAdd({ open, onClose, onCreateTask, onCreateHabit, onCreateG
     }
   };
 
-  const pickSuggestion = (name: string) => {
-    setValue(name);
-    void submit();
-  };
+  const habitIdeas = [...goodHabitSuggestions.slice(0, 6), ...badHabitSuggestions.slice(0, 3)];
 
   return <div className="quick-add-wrap"><div className="quick-add-menu">
     {type ? <>
@@ -57,27 +55,14 @@ export function QuickAdd({ open, onClose, onCreateTask, onCreateHabit, onCreateG
 
       {type === 'habit' && (
         <div className="habit-suggestions">
-          <div className="suggestion-group">
-            <p className="suggestion-label"><Sparkles size={12} /> Good habits to build</p>
-            <div className="suggestion-chips">
-              {goodHabitSuggestions.map((h) => (
-                <button key={h.name} className="suggestion-chip" onClick={() => pickSuggestion(h.name)}>
-                  <span className="suggestion-chip-icon">{h.icon}</span>
-                  {h.name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="suggestion-group">
-            <p className="suggestion-label">Bad habits to break</p>
-            <div className="suggestion-chips">
-              {badHabitSuggestions.map((h) => (
-                <button key={h.name} className="suggestion-chip" onClick={() => pickSuggestion(h.name)}>
-                  <span className="suggestion-chip-icon">{h.icon}</span>
-                  {h.name}
-                </button>
-              ))}
-            </div>
+          <p className="suggestion-label"><Sparkles size={12} /> Ideas</p>
+          <div className="suggestion-chips">
+            {habitIdeas.map((h) => (
+              <button key={h.name} type="button" className="suggestion-chip" onClick={() => { setValue(h.name); void submit(h.name); }}>
+                <span className="suggestion-chip-icon">{h.icon}</span>
+                {h.name}
+              </button>
+            ))}
           </div>
         </div>
       )}

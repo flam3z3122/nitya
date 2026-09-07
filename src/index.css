@@ -102,6 +102,14 @@
 .dark .install-banner { background: #07141a; border-color: rgba(255,255,255,0.04); box-shadow: 0 12px 28px #00000055; }
 .dark .install-banner-copy span { color: var(--muted); }
 @media (min-width: 760px) { .install-banner { left: auto; right: 35px; bottom: 102px; width: min(380px, calc(100vw - 70px)); } }
+.calendar-day.is-spacer { visibility: hidden; pointer-events: none; }
+.month-row { grid-template-columns: repeat(auto-fill, minmax(12px, 1fr)); }
+
+.quick-add-menu { max-height: calc(100dvh - 168px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.quick-add-header > div { min-width: 0; }
+.quick-add-header h3 { overflow-wrap: anywhere; }
+.habit-suggestions { max-height: 168px; overflow-y: auto; gap: 8px; }
+.suggestion-chip { max-width: 100%; }
 
 /* Bottom nav should adapt to dark theme */
 .dark .bottom-nav { background: rgba(7,16,24,0.9); border-top-color: rgba(255,255,255,0.04); }
@@ -269,3 +277,16 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 @media (min-width: 1050px) { .page-content { padding-left: 68px; padding-right: 68px; }.today-layout { grid-template-columns: minmax(0, 1fr) 310px; gap: 58px; } }
 @media (max-width: 430px) { .desktop-add { display: none; }.page-header { margin-bottom: 10px; }.page-header h1 { font-size: 19px; letter-spacing: -.5px; }.page-header .eyebrow { font-size: 9px; }.page-content { padding-left: 14px; padding-right: 14px; padding-bottom: 90px; }.task-card, .habit-card { min-height: 48px; padding: 7px 10px; gap: 9px; border-radius: 12px; }.task-title, .habit-name { font-size: 12px; }.task-meta, .habit-meta { gap: 5px; margin-top: 3px; font-size: 9px; }.task-check, .habit-check { width: 20px; height: 20px; border-radius: 6px; }.habit-check { width: 22px; height: 22px; }.habit-icon { width: 32px; height: 32px; font-size: 17px; border-radius: 10px; }.progress-card { padding: 16px 18px; border-radius: 18px; box-shadow: 0 10px 22px #2c685926; background: linear-gradient(135deg, #2c6859 0%, #1f5044 100%); }.progress-card .progress-topline, .progress-card .progress-track, .progress-card .progress-bottomline { display: none; }.progress-mobile-banner { display: flex; align-items: center; gap: 14px; }.progress-mobile-ring-wrap { position: relative; flex: 0 0 auto; display: grid; place-items: center; }.progress-mobile-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }.progress-mobile-ring-text strong { font: 800 16px/1 'Manrope', sans-serif; color: #fff; letter-spacing: -.5px; }.progress-mobile-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }.progress-mobile-info .eyebrow { font-size: 8px; letter-spacing: 1.2px; }.progress-mobile-info strong { font: 800 22px/1.1 'Manrope', sans-serif; color: #fff; letter-spacing: -1px; }.progress-mobile-info span { color: #aed0c1; font-size: 10px; }.progress-mobile-flame { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: #e9c17e; background: #ffffff1c; }.content-section { margin-top: 14px; }.stats-card { padding: 12px 9px; }.stats-card strong { font-size: 16px; }.stats-card > span { font-size: 8px; }.stats-label { font-size: 9px; }.calendar-card, .day-detail, .chart-card, .consistency-card { padding: 16px; }.score-banner { flex-direction: column; align-items: stretch; text-align: center; gap: 10px; padding: 18px; }.score-ring { align-self: center; }.subpage-intro { grid-template-columns: 1fr; gap: 8px; margin-bottom: 16px; }.filter-row { flex-wrap: wrap; margin-bottom: 12px; }.calendar-day { height: 36px; font-size: 11px; }.weekday-row span { font-size: 8px; }.bar-chart { gap: 5px; height: 140px; }.bar { max-width: 22px; }.month-row { grid-template-columns: repeat(10, 1fr); }.streak-days i { width: 22px; height: 22px; font-size: 10px; }.streak-days div { font-size: 8px; }.profile-card { padding: 18px 16px; }.profile-card .avatar-large { width: 52px; height: 52px; font-size: 16px; }.quick-add-menu { right: 16px; width: min(350px, calc(100% - 32px)); padding: 16px; }.quick-add { right: 16px; bottom: 72px; } }
 @media (max-width: 360px) { .stats-grid { grid-template-columns: 1fr; }.calendar-day { height: 32px; font-size: 10px; }.calendar-grid, .weekday-row { gap: 3px; }.page-header h1 { font-size: 22px; }.task-card, .habit-card { padding: 12px 10px; gap: 10px; }.task-check, .habit-check { width: 20px; height: 20px; }.habit-check { width: 26px; height: 26px; }.habit-icon { width: 36px; height: 36px; font-size: 19px; }.task-meta, .habit-meta { gap: 5px; } }
+.calendar-day.is-spacer { visibility: hidden; pointer-events: none; }
+.month-row { grid-template-columns: repeat(auto-fill, minmax(12px, 1fr)); }
+.edit-reminder-row { display: flex; align-items: center; gap: 8px; }
+.edit-time-input { max-width: 150px; min-height: 42px; }
+.habit-reminder { display: inline-flex; align-items: center; gap: 3px; color: #668179; }
+.reminder-list { display: grid; gap: 8px; }
+.reminder-item { display: flex; align-items: center; gap: 11px; width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; color: #8a9792; text-align: left; cursor: pointer; }
+.reminder-item .habit-icon { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
+.reminder-item div { min-width: 0; flex: 1; }
+.reminder-item strong { display: block; font-size: 13px; color: var(--ink); }
+.reminder-item span { display: block; font-size: 11px; margin-top: 2px; }
+.reminder-item.is-done strong { text-decoration: line-through; color: #91a09c; }
+.dark .reminder-item { background: #07141a; border-color: rgba(255,255,255,0.03); }

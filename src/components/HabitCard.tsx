@@ -1,5 +1,6 @@
 import {
   Check,
+  Clock3,
   Flame,
   Trash2,
   CircleHelp,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { Habit } from '@/types';
+import { formatReminderTime, localDateKey } from '@/lib/activity';
 
 type HabitCardProps = {
   habit: Habit;
@@ -98,6 +100,12 @@ export function HabitCard({
 
         <div className="habit-meta">
           <span>{habit.frequency}</span>
+          {habit.reminder_time && (
+            <span className="habit-reminder">
+              <Clock3 size={12} />
+              {formatReminderTime(habit.reminder_time)}
+            </span>
+          )}
 
           <span className="streak">
             <Flame size={13} fill="currentColor" />
@@ -118,7 +126,7 @@ export function HabitCard({
             const last7 = Array.from({ length: 7 }).map((_, i) => {
               const d = new Date();
               d.setDate(d.getDate() - (6 - i));
-              return d.toISOString().slice(0, 10);
+              return localDateKey(d);
             });
 
             return last7.map((date) => (
