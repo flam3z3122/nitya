@@ -18,6 +18,7 @@ export type Habit = {
   streak: number;
   completed: boolean;
   history: string[];
+  reminder_time: string | null;
 };
 
 export type Goal = {

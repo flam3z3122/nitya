@@ -1,4 +1,4 @@
-import { Check, Clock3, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Check, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Task } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 
@@ -58,7 +58,6 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
         <div className="task-meta">
           <span className="category-pill">{task.category}</span>
           <span className={`priority priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          <span className="inline-flex items-center gap-1"><Clock3 size={12} /> {task.time}</span>
         </div>
       </div>
       <div className="overflow-menu" ref={ref}>

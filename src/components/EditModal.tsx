@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { CheckSquare, Leaf, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
+import { requestReminderPermission } from '@/hooks/useReminders';
+import { normalizeTimeKey } from '@/lib/activity';
 
 export type EditType = 'task' | 'habit' | 'goal';
 export type EditItem = Task | Habit | Goal;
 export type EditUpdates =
   | Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>
-  | Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency'>>
+  | Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>>
   | Partial<Pick<Goal, 'title'>>;
 
 type EditModalProps = {
@@ -54,6 +56,8 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const [icon, setIcon] = useState('✦');
   const [color, setColor] = useState('mint');
   const [frequency, setFrequency] = useState('Daily');
+  const [remind, setRemind] = useState(false);
+  const [reminderTime, setReminderTime] = useState('08:00');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +73,8 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       setIcon(item.icon);
       setColor(item.color);
       setFrequency(item.frequency);
+      setRemind(Boolean(item.reminder_time));
+      setReminderTime(item.reminder_time ? normalizeTimeKey(item.reminder_time) : '08:00');
     } else {
       setTitle(item.title);
     }
@@ -113,6 +119,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           icon: icon.trim() || '✦',
           color,
           frequency,
+          reminder_time: remind ? normalizeTimeKey(reminderTime) : null,
         });
       } else {
         await onSave(item.id, { title: title.trim() });
@@ -206,6 +213,29 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
                       {value}
                     </button>
                   ))}
+                </div>
+              </Field>
+              <Field label="Reminder">
+                <div className="edit-reminder-row">
+                  <button
+                    type="button"
+                    className={`edit-choice ${remind ? 'is-active' : ''}`}
+                    onClick={() => {
+                      const next = !remind;
+                      setRemind(next);
+                      if (next) void requestReminderPermission();
+                    }}
+                  >
+                    {remind ? 'On' : 'Off'}
+                  </button>
+                  {remind && (
+                    <input
+                      type="time"
+                      className="quick-input edit-time-input"
+                      value={reminderTime}
+                      onChange={(event) => setReminderTime(normalizeTimeKey(event.target.value))}
+                    />
+                  )}
                 </div>
               </Field>
             </>

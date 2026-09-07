@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, CalendarCheck, Check, ChevronLeft, ChevronRight, Clock3, Flame, Loader2, LogOut, Mail, MoreHorizontal, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, TrendingUp, X } from 'lucide-react';
-import { calendarDays } from '@/data';
+import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, Flame, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, TrendingUp, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
+import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
+import { requestReminderPermission } from '@/hooks/useReminders';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
 import { GoalCard } from '@/components/GoalCard';
@@ -20,6 +21,7 @@ export function PageHeader({ screen, action, userName }: { screen: Screen; actio
 
 export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onEditTask, onEditHabit, onEditGoal, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
   const visibleTasks = tasks.slice(0, 3);
   const remainingTasks = Math.max(0, tasks.length - visibleTasks.length);
   return (
@@ -28,6 +30,30 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
       <div className="today-layout">
         <div className="today-main">
           <ProgressCard completed={completed} total={tasks.length + habits.length} />
+          {reminders.length > 0 && (
+            <section className="content-section reminder-section">
+              <div className="section-heading">
+                <div><p className="eyebrow">TODAY&apos;S NUDGES</p><h2>Reminders</h2></div>
+              </div>
+              <div className="reminder-list">
+                {reminders.map((habit) => (
+                  <button
+                    key={habit.id}
+                    type="button"
+                    className={`reminder-item ${habit.completed ? 'is-done' : ''}`}
+                    onClick={() => onEditHabit(habit.id)}
+                  >
+                    <span className={`habit-icon habit-${habit.color}`}>{habit.icon}</span>
+                    <div>
+                      <strong>{habit.name}</strong>
+                      <span>{formatReminderTime(habit.reminder_time ?? '')}{habit.completed ? ' · Done' : ''}</span>
+                    </div>
+                    <Clock3 size={15} />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           {goals.length > 0 && (
             <section className="content-section">
               <div className="section-heading">
@@ -67,7 +93,10 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
             <strong>{Math.max(0, ...habits.map((habit) => habit.streak))}</strong>
             <p>day current streak</p>
             <div className="streak-days">
-              {['M','T','W','T','F','S','S'].map((day, i) => <div key={`${day}-${i}`} className={i < 5 ? 'done' : ''}><span>{day}</span><i>{i < 5 ? '\u2713' : ''}</i></div>)}
+              {currentWeekDays().map((day) => {
+                const done = completedHabitsOn(habits, day.key).length > 0;
+                return <div key={day.key} className={done ? 'done' : ''}><span>{day.label}</span><i>{done ? '\u2713' : ''}</i></div>;
+              })}
             </div>
           </div>
           <div className="quote-card">
@@ -84,16 +113,180 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
 type HabitsProps = { habits: Habit[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void>; onQuickAdd: () => void; onEdit: (id: string) => void };
 export function HabitsPage({ habits, onToggle, onDelete, onQuickAdd, onEdit }: HabitsProps) { const [filter, setFilter] = useState('All habits'); return <div className="page-content"><PageHeader screen="habits" action={<button className="button button-dark" onClick={onQuickAdd}><span>+</span> New habit</button>} /><div className="subpage-intro"><div className="mini-stat"><div className="mini-stat-icon"><Flame size={18} /></div><div><strong>{Math.max(0, ...habits.map((habit) => habit.streak))} days</strong><span>longest current streak</span></div></div><div className="mini-stat"><div className="mini-stat-icon blue"><TrendingUp size={18} /></div><div><strong>{habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%</strong><span>today&apos;s consistency</span></div></div></div><div className="filter-row"><button className={filter === 'All habits' ? 'filter active' : 'filter'} onClick={() => setFilter('All habits')}>All habits</button><button className={filter === 'Daily' ? 'filter active' : 'filter'} onClick={() => setFilter('Daily')}>Daily</button><button className={filter === 'Weekly' ? 'filter active' : 'filter'} onClick={() => setFilter('Weekly')}>Weekly</button></div><section className="habit-grid">{habits.filter((habit) => filter === 'All habits' || (filter === 'Daily' ? habit.frequency === 'Daily' : habit.frequency !== 'Daily')).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={(id) => void onToggle(id, !habit.completed)} onDelete={(id) => void onDelete(id)} onEdit={onEdit} />)}</section></div>; }
 
-export function CalendarPage({ completions }: { completions: string[] }) { const [selected, setSelected] = useState(24); const weeks = useMemo(() => Array.from({ length: 5 }, (_, week) => calendarDays.slice(week * 7, week * 7 + 7)), []); return <div className="page-content"><PageHeader screen="calendar" action={<button className="icon-button" aria-label="Calendar settings"><MoreHorizontal size={19} /></button>} /><div className="calendar-layout"><section className="calendar-card"><div className="calendar-top"><button className="icon-button" aria-label="Previous month"><ChevronLeft size={18} /></button><div><strong>August 2026</strong><span>Today</span></div><button className="icon-button" aria-label="Next month"><ChevronRight size={18} /></button></div><div className="weekday-row">{['MON','TUE','WED','THU','FRI','SAT','SUN'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{weeks.flat().map((day) => <button key={day} className={`calendar-day ${selected === day ? 'selected' : ''} ${completions.length > 0 && [3, 7, 11, 16, 19, 24, 26, 29].includes(day) ? 'has-activity' : ''}`} onClick={() => setSelected(day)}>{day}<i /></button>)}</div><div className="calendar-legend"><span><i className="legend-dot filled" /> Completed day</span><span><i className="legend-dot" /> Planned activity</span></div></section><section className="day-detail"><div className="detail-date"><div><p className="eyebrow">MONDAY</p><h2>August {selected}</h2></div><div className="date-number">{selected}</div></div><div className="detail-progress"><div><span>Daily completion</span><strong>80%</strong></div><div className="progress-track"><div className="progress-fill" style={{ width: '80%' }} /></div></div><div className="detail-items"><p className="eyebrow">ACTIVITY</p><div className="detail-item"><span className="detail-item-icon green"><CalendarCheck size={17} /></span><div><strong>{completions.length} habit completions recorded</strong><small>Your history is building</small></div><span className="detail-check">&check;</span></div><div className="detail-item"><span className="detail-item-icon yellow"><Flame size={17} /></span><div><strong>Keep your rhythm going</strong><small>Small steps add up</small></div></div></div></section></div></div>; }
+export function CalendarPage({ habits }: { habits: Habit[] }) {
+  const now = new Date();
+  const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  const [selected, setSelected] = useState(now.getDate());
+  const isCurrentMonth = cursor.year === now.getFullYear() && cursor.month === now.getMonth();
+  const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const selectedDate = new Date(cursor.year, cursor.month, selected);
+  const selectedKey = dateKey(cursor.year, cursor.month, selected);
+  const doneToday = completedHabitsOn(habits, selectedKey);
+  const rate = dayCompletionRate(habits, selectedKey);
+  const cells = useMemo(() => {
+    const blanks = mondayOffset(cursor.year, cursor.month);
+    const days = daysInMonth(cursor.year, cursor.month);
+    return [
+      ...Array.from({ length: blanks }, (_, index) => ({ key: `pad-${index}`, day: 0 })),
+      ...Array.from({ length: days }, (_, index) => ({ key: dateKey(cursor.year, cursor.month, index + 1), day: index + 1 })),
+    ];
+  }, [cursor.year, cursor.month]);
 
-export function StatisticsPage({ tasks, habits }: { tasks: Task[]; habits: Habit[] }) { const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length; const total = tasks.length + habits.length; const score = total ? Math.round((completed / total) * 100) : 0; return <div className="page-content"><PageHeader screen="statistics" action={<button className="button button-light"><Clock3 size={15} /> This month</button>} /><div className="score-banner"><div><p className="eyebrow light">YOUR DAILY SCORE</p><h2>{(score / 10).toFixed(1)} <span>/ 10</span></h2><p>Based on your completed tasks and habits today.</p></div><div className="score-ring"><strong>{score}</strong><span>score</span></div></div><section className="stats-grid"><StatsCard label="Current streak" value={`${Math.max(0, ...habits.map((habit) => habit.streak))} days`} helper="From habit history" icon={<Flame size={19} />} tone="orange" /><StatsCard label="Completed today" value={`${completed}`} helper={`of ${total} items`} icon={<Target size={19} />} tone="blue" /><StatsCard label="Habit consistency" value={`${habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%`} helper="Today&apos;s completion" icon={<TrendingUp size={19} />} tone="green" /></section><section className="chart-card"><div className="section-heading"><div><p className="eyebrow">WEEKLY MOMENTUM</p><h2>Activity overview</h2></div><button className="icon-button subtle"><MoreHorizontal size={18} /></button></div><div className="bar-chart">{[55, 72, 48, 86, 64, 92, 76].map((height, index) => <div className="bar-column" key={index}><div className={`bar ${index === 4 ? 'highlight' : ''}`} style={{ height: `${height}%` }} /><span>{['M','T','W','T','F','S','S'][index]}</span></div>)}</div></section><section className="consistency-card"><div><p className="eyebrow">MONTHLY PROGRESS</p><h2>A month of momentum</h2></div><div className="month-row">{Array.from({ length: 30 }, (_, i) => <i key={i} className={i < Math.min(20, completed + 10) ? 'complete' : i < 24 ? 'partial' : ''} />)}</div><div className="consistency-footer"><span>{completed} completed today</span><strong>{score}%</strong></div></section></div>; }
+  const moveMonth = (delta: number) => {
+    const next = shiftMonth(cursor.year, cursor.month, delta);
+    setCursor(next);
+    const current = next.year === now.getFullYear() && next.month === now.getMonth();
+    setSelected(current ? now.getDate() : 1);
+  };
+
+  return (
+    <div className="page-content">
+      <PageHeader screen="calendar" />
+      <div className="calendar-layout">
+        <section className="calendar-card">
+          <div className="calendar-top">
+            <button className="icon-button" onClick={() => moveMonth(-1)} aria-label="Previous month"><ChevronLeft size={18} /></button>
+            <div>
+              <strong>{monthLabel}</strong>
+              <span>{isCurrentMonth ? 'Today' : `${doneToday.length} done this day`}</span>
+            </div>
+            <button className="icon-button" onClick={() => moveMonth(1)} aria-label="Next month"><ChevronRight size={18} /></button>
+          </div>
+          <div className="weekday-row">{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <span key={day}>{day}</span>)}</div>
+          <div className="calendar-grid">
+            {cells.map((cell) => cell.day === 0
+              ? <span key={cell.key} className="calendar-day is-spacer" />
+              : (
+                <button
+                  key={cell.key}
+                  className={`calendar-day ${selected === cell.day ? 'selected' : ''} ${completedHabitsOn(habits, cell.key).length > 0 ? 'has-activity' : ''}`}
+                  onClick={() => setSelected(cell.day)}
+                >
+                  {cell.day}
+                  <i />
+                </button>
+              ))}
+          </div>
+          <div className="calendar-legend">
+            <span><i className="legend-dot filled" /> Habit completed</span>
+            <span><i className="legend-dot" /> No activity</span>
+          </div>
+        </section>
+        <section className="day-detail">
+          <div className="detail-date">
+            <div>
+              <p className="eyebrow">{selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}</p>
+              <h2>{selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</h2>
+            </div>
+            <div className="date-number">{selected}</div>
+          </div>
+          <div className="detail-progress">
+            <div><span>Daily completion</span><strong>{rate}%</strong></div>
+            <div className="progress-track"><div className="progress-fill" style={{ width: `${rate}%` }} /></div>
+          </div>
+          <div className="detail-items">
+            <p className="eyebrow">ACTIVITY</p>
+            {doneToday.length === 0 ? (
+              <div className="detail-item">
+                <span className="detail-item-icon yellow"><Flame size={17} /></span>
+                <div><strong>No habits completed</strong><small>Check in on a habit to see it here</small></div>
+              </div>
+            ) : doneToday.map((habit) => (
+              <div className="detail-item" key={habit.id}>
+                <span className={`detail-item-icon green habit-icon habit-${habit.color}`}>{habit.icon}</span>
+                <div><strong>{habit.name}</strong><small>{habit.frequency}</small></div>
+                <span className="detail-check">&check;</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+export function StatisticsPage({ tasks, habits }: { tasks: Task[]; habits: Habit[] }) {
+  const now = new Date();
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+  const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const total = tasks.length + habits.length;
+  const score = total ? Math.round((completed / total) * 100) : 0;
+  const week = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now);
+    date.setDate(now.getDate() - (6 - index));
+    const key = localDateKey(date);
+    return {
+      key,
+      label: date.toLocaleDateString('en-US', { weekday: 'narrow' }),
+      rate: dayCompletionRate(habits, key),
+      isToday: key === todayKey(),
+    };
+  });
+  const monthDays = daysInMonth(now.getFullYear(), now.getMonth());
+  const monthCells = Array.from({ length: monthDays }, (_, index) => {
+    const key = dateKey(now.getFullYear(), now.getMonth(), index + 1);
+    const count = completedHabitsOn(habits, key).length;
+    return {
+      key,
+      tone: count === 0 ? '' : habits.length > 0 && count >= habits.length ? 'complete' : 'partial',
+    };
+  });
+  const elapsed = now.getDate();
+  const activeDays = monthCells.slice(0, elapsed).filter((cell) => cell.tone !== '').length;
+  const monthRate = elapsed ? Math.round((activeDays / elapsed) * 100) : 0;
+
+  return (
+    <div className="page-content">
+      <PageHeader screen="statistics" action={<span className="button button-light"><Clock3 size={15} /> {monthName}</span>} />
+      <div className="score-banner">
+        <div>
+          <p className="eyebrow light">YOUR DAILY SCORE</p>
+          <h2>{(score / 10).toFixed(1)} <span>/ 10</span></h2>
+          <p>Based on your completed tasks and habits today.</p>
+        </div>
+        <div className="score-ring"><strong>{score}</strong><span>score</span></div>
+      </div>
+      <section className="stats-grid">
+        <StatsCard label="Current streak" value={`${Math.max(0, ...habits.map((habit) => habit.streak))} days`} helper="From habit history" icon={<Flame size={19} />} tone="orange" />
+        <StatsCard label="Completed today" value={`${completed}`} helper={`of ${total} items`} icon={<Target size={19} />} tone="blue" />
+        <StatsCard label="Habit consistency" value={`${habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%`} helper="Today&apos;s completion" icon={<TrendingUp size={19} />} tone="green" />
+      </section>
+      <section className="chart-card">
+        <div className="section-heading">
+          <div><p className="eyebrow">WEEKLY MOMENTUM</p><h2>Activity overview</h2></div>
+        </div>
+        <div className="bar-chart">
+          {week.map((day) => (
+            <div className="bar-column" key={day.key}>
+              <div className={`bar ${day.isToday ? 'highlight' : ''}`} style={{ height: `${day.rate}%` }} />
+              <span>{day.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="consistency-card">
+        <div>
+          <p className="eyebrow">MONTHLY PROGRESS</p>
+          <h2>A month of momentum</h2>
+        </div>
+        <div className="month-row">
+          {monthCells.map((cell) => <i key={cell.key} className={cell.tone} />)}
+        </div>
+        <div className="consistency-footer">
+          <span>{activeDays} active day{activeDays === 1 ? '' : 's'} this month</span>
+          <strong>{monthRate}%</strong>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 type ProfilePageProps = {
   profile: ProfileSettings | null;
   authEmail: string;
   emailVerified: boolean;
   onSignOut: () => void;
-  onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme'>>) => Promise<void>;
+  onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled'>>) => Promise<void>;
   onResendVerification: () => Promise<{ error: string | null }>;
 };
 
@@ -120,6 +313,19 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
 
   const saveName = async () => { if (!nameValue.trim()) return; setNameSaving(true); await onUpdateProfile({ name: nameValue.trim() }); setNameSaving(false); setEditingName(false); };
   const setTheme = async (theme: 'Light' | 'Dark') => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
+  const toggleNotifications = async () => {
+    const next = !profile?.notifications_enabled;
+    if (next) {
+      const allowed = await requestReminderPermission();
+      if (!allowed) {
+        showToast('Allow notifications in your browser to get reminders.', 'error');
+        return;
+      }
+    }
+    setSavingKey('notifications');
+    await onUpdateProfile({ notifications_enabled: next });
+    setSavingKey(null);
+  };
 
   const handleResend = async () => {
     setResending(true);
@@ -157,6 +363,7 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
       <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : activeTheme}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
       {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${activeTheme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{activeTheme === t && <Check size={15} />}</button>)}</div>}
+      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">Reminders</span><span className={`toggle ${profile?.notifications_enabled ? 'on' : 'off'}`}><i /></span></button>
     </div></section>
 
     <button className="logout-button" onClick={onSignOut}><LogOut size={17} /> Log out</button>

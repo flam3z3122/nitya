@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { streakFromHistory, todayKey } from '@/lib/activity';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
-type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string };
+type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null };
 type GoalRow = { id: string; title: string };
 type CompletionRow = { habit_id: string; completed_on: string };
 
 const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null };
 
 function calculateStreak(habitId: string, completions: CompletionRow[]): number {
-  const dates = new Set(completions.filter((item) => item.habit_id === habitId).map((item) => item.completed_on));
-  let streak = 0;
-  const cursor = new Date();
-  while (dates.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
+  return streakFromHistory(completions.filter((item) => item.habit_id === habitId).map((item) => item.completed_on));
 }
 
 function toFriendlyError(message: string): string {
@@ -46,26 +40,30 @@ export function useProductivityData(userId: string | null) {
     if (!userId) { setState({ ...initialState, loading: false }); return; }
     setState((current) => ({ ...current, loading: true, error: null }));
     await ensureWelcomeTask();
-    const [tasksResult, habitsResult, goalsResult, completionsResult, profileResult] = await Promise.all([
+    let [tasksResult, habitsResult, goalsResult, completionsResult, profileResult] = await Promise.all([
       supabase.from('tasks').select('id, title, category, priority, due_label, completed').order('created_at', { ascending: true }),
-      supabase.from('habits').select('id, name, icon, color, frequency').order('created_at', { ascending: true }),
+      supabase.from('habits').select('id, name, icon, color, frequency, reminder_time').order('created_at', { ascending: true }),
       supabase.from('goals').select('id, title').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
       supabase.auth.getSession().then(({ data }) => data.session?.user ?? null),
     ]);
+    if (habitsResult.error?.message.includes('reminder_time')) {
+      habitsResult = await supabase.from('habits').select('id, name, icon, color, frequency').order('created_at', { ascending: true });
+    }
     const failure = tasksResult.error ?? habitsResult.error ?? goalsResult.error ?? completionsResult.error;
     if (failure) { setState((current) => ({ ...current, loading: false, error: toFriendlyError(failure.message) })); return; }
     const taskRows = (tasksResult.data ?? []) as TaskRow[];
     const habitRows = (habitsResult.data ?? []) as HabitRow[];
     const goalRows = (goalsResult.data ?? []) as GoalRow[];
     const completionRows = (completionsResult.data ?? []) as CompletionRow[];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
     const sessionUser = profileResult as { id: string; email: string } | null;
     const profile = sessionUser ? await ensureProfile(sessionUser.id, sessionUser.email) : null;
     setState({
       tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime' })),
       habits: habitRows.map((habit) => ({
         ...habit,
+        reminder_time: habit.reminder_time ?? null,
         completed: completionRows.some((item) => item.habit_id === habit.id && item.completed_on === today),
         streak: calculateStreak(habit.id, completionRows),
         history: completionRows.filter((item) => item.habit_id === habit.id).map((item) => item.completed_on),
@@ -87,23 +85,20 @@ export function useProductivityData(userId: string | null) {
   }, []);
 
   const toggleHabit = useCallback(async (id: string, completed: boolean) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
     const result = completed
       ? await supabase.from('habit_completions').upsert({ habit_id: id, completed_on: today }, { onConflict: 'user_id,habit_id,completed_on' })
       : await supabase.from('habit_completions').delete().eq('habit_id', id).eq('completed_on', today);
     if (result.error) { setState((current) => ({ ...current, error: 'That habit could not be updated. Please try again.' })); return; }
     setState((current) => ({
       ...current,
-      habits: current.habits.map((habit) => habit.id === id
-        ? {
-          ...habit,
-          completed,
-          streak: completed ? habit.streak + 1 : Math.max(0, habit.streak - 1),
-          history: completed
-            ? Array.from(new Set([today, ...habit.history]))
-            : habit.history.filter((date) => date !== today),
-        }
-        : habit),
+      habits: current.habits.map((habit) => {
+        if (habit.id !== id) return habit;
+        const history = completed
+          ? Array.from(new Set([today, ...habit.history]))
+          : habit.history.filter((date) => date !== today);
+        return { ...habit, completed, history, streak: streakFromHistory(history) };
+      }),
       completions: completed ? [today, ...current.completions] : current.completions.filter((date) => date !== today),
     }));
   }, []);
@@ -123,17 +118,17 @@ export function useProductivityData(userId: string | null) {
   }, []);
 
   const createHabit = useCallback(async (name: string) => {
-    const { data, error } = await supabase.from('habits').insert({ name, icon: '✦', color: 'mint', frequency: 'Daily' }).select('id, name, icon, color, frequency').maybeSingle();
+    const { data, error } = await supabase.from('habits').insert({ name, icon: '✦', color: 'mint', frequency: 'Daily' }).select('id, name, icon, color, frequency, reminder_time').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0, history: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, reminder_time: habit.reminder_time ?? null, completed: false, streak: 0, history: [] }] }));
   }, []);
 
   const createHabitWithDetails = useCallback(async (name: string, icon: string, color: string, frequency: string) => {
-    const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency').maybeSingle();
+    const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency, reminder_time').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, completed: false, streak: 0, history: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, reminder_time: habit.reminder_time ?? null, completed: false, streak: 0, history: [] }] }));
   }, []);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>) => {
@@ -150,12 +145,13 @@ export function useProductivityData(userId: string | null) {
     }));
   }, []);
 
-  const updateHabit = useCallback(async (id: string, updates: Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency'>>) => {
-    const payload: Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency'>> = {};
+  const updateHabit = useCallback(async (id: string, updates: Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>>) => {
+    const payload: Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>> = {};
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.icon !== undefined) payload.icon = updates.icon;
     if (updates.color !== undefined) payload.color = updates.color;
     if (updates.frequency !== undefined) payload.frequency = updates.frequency;
+    if (updates.reminder_time !== undefined) payload.reminder_time = updates.reminder_time;
     const { error } = await supabase.from('habits').update(payload).eq('id', id);
     if (error) throw new Error('That habit could not be updated. Please try again.');
     setState((current) => ({
@@ -201,7 +197,7 @@ export function useProductivityData(userId: string | null) {
       const { error: habitsError } = await supabase.from('habits').insert(selectedHabits.map((h) => ({ name: h.name, icon: h.icon, color: h.color, frequency: h.frequency })));
       if (habitsError) throw new Error('Could not save your habits.');
     }
-    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0, history: [] }))] }));
+    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0, history: [], reminder_time: null }))] }));
   }, [userId]);
 
   const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
