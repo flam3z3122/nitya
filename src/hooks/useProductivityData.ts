@@ -185,15 +185,16 @@ export function useProductivityData(userId: string | null) {
     }));
   }, []);
 
-  const createTask = useCallback(async (title: string) => {
-    const { data, error } = await supabase.from('tasks').insert({ title, category: 'Personal', priority: 'Medium', due_label: 'Anytime' }).select('id, title, category, priority, due_label, completed').maybeSingle();
+  const createTask = useCallback(async (title: string, category = 'Personal', priority: Task['priority'] = 'Medium') => {
+    const { data, error } = await supabase.from('tasks').insert({ title, category, priority, due_label: 'Anytime' }).select('id, title, category, priority, due_label, completed').maybeSingle();
     if (error || !data) throw new Error('Task could not be created.');
     const task = data as TaskRow;
     setState((current) => ({ ...current, tasks: [...current.tasks, { ...task, time: task.due_label ?? 'Anytime' }] }));
   }, []);
 
-  const createGoal = useCallback(async (title: string) => {
-    const payload = { title, notes: '', target: 10, progress: 0 };
+  const createGoal = useCallback(async (title: string, notes = '', target = 10, progress = 0) => {
+    const safeTarget = Math.max(1, target);
+    const payload = { title, notes, target: safeTarget, progress: Math.min(Math.max(0, progress), safeTarget) };
     let { data, error } = await supabase.from('goals').insert(payload).select('id, title, notes, target, progress').maybeSingle();
     if (error) {
       const fallback = await supabase.from('goals').insert({ title }).select('id, title').maybeSingle();

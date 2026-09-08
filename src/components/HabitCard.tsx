@@ -5,7 +5,6 @@ import {
   Clock3,
   Flame,
   Trash2,
-  CircleHelp,
   Pencil,
   MoreHorizontal,
   Undo2,
@@ -124,15 +123,6 @@ export function HabitCard({
           <span className="streak">
             <Flame size={13} fill="currentColor" />
             {habit.streak} {isWeeklyHabit(habit.frequency) ? 'week' : 'day'} streak
-          </span>
-
-          <span className="tooltip" aria-hidden>
-            <CircleHelp size={14} />
-            <span className="tooltip-text">
-              {isWeeklyHabit(habit.frequency)
-                ? 'Weekly habits count once per week. Streak is consecutive weeks with a check-in.'
-                : 'Streak counts consecutive completed days ending today or yesterday.'}
-            </span>
           </span>
         </div>
 

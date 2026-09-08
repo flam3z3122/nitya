@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { CheckSquare, Leaf, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
-import { requestReminderPermission } from '@/hooks/useReminders';
-import { normalizeTimeKey } from '@/lib/activity';
+import { SuggestionChips } from '@/components/SuggestionChips';
+import { GoalFields } from '@/components/GoalFields';
+import { goodHabitSuggestions } from '@/data/habitSuggestions';
+import { taskSuggestions } from '@/data/taskSuggestions';
+import { goalSuggestions } from '@/data/goalSuggestions';
 
 export type EditType = 'task' | 'habit' | 'goal';
 export type EditItem = Task | Habit | Goal;
@@ -23,10 +26,19 @@ const habitColors = [
   { value: 'mint', label: 'Mint' },
   { value: 'peach', label: 'Peach' },
   { value: 'blue', label: 'Blue' },
-  { value: 'lavender', label: 'Lavender' },
+  { value: 'lavender', label: 'Lilac' },
 ] as const;
 
-const habitIcons = ['✦', '💧', '🏃', '📚', '🧘', '🚶', '✍️', '🌅'];
+const habitIcons = [
+  { value: '✦', label: 'Focus' },
+  { value: '💧', label: 'Water' },
+  { value: '🏃', label: 'Move' },
+  { value: '📚', label: 'Read' },
+  { value: '🧘', label: 'Calm' },
+  { value: '🚶', label: 'Walk' },
+  { value: '✍️', label: 'Write' },
+  { value: '🌅', label: 'Start' },
+] as const;
 const frequencies = ['Daily', 'Weekly'] as const;
 const priorities: Task['priority'][] = ['High', 'Medium', 'Low'];
 const categories = ['Personal', 'Work', 'Health', 'Study'];
@@ -56,17 +68,17 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const [icon, setIcon] = useState('✦');
   const [color, setColor] = useState('mint');
   const [frequency, setFrequency] = useState('Daily');
-  const [remind, setRemind] = useState(false);
-  const [reminderTime, setReminderTime] = useState('08:00');
   const [notes, setNotes] = useState('');
   const [target, setTarget] = useState(10);
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMoreIdeas, setShowMoreIdeas] = useState(false);
 
   useEffect(() => {
     if (!item || !type) return;
     setError(null);
+    setShowMoreIdeas(false);
     if (isTask(item, type)) {
       setTitle(item.title);
       setCategory(item.category);
@@ -76,8 +88,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       setIcon(item.icon);
       setColor(item.color);
       setFrequency(item.frequency);
-      setRemind(Boolean(item.reminder_time));
-      setReminderTime(item.reminder_time ? normalizeTimeKey(item.reminder_time) : '08:00');
     } else {
       setTitle(item.title);
       setNotes(item.notes ?? '');
@@ -105,7 +115,14 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const MarkIcon = copy.icon;
 
   const canSave = type === 'habit' ? name.trim().length > 0 : title.trim().length > 0;
-  const shownIcons = habitIcons.includes(icon) ? habitIcons : [icon, ...habitIcons];
+  const shownIcons = habitIcons.some((itemIcon) => itemIcon.value === icon)
+    ? habitIcons
+    : [{ value: icon, label: 'Yours' } as const, ...habitIcons];
+  const ideaItems = type === 'task'
+    ? taskSuggestions.map((itemIdea) => ({ id: itemIdea.title, label: itemIdea.title, icon: itemIdea.icon }))
+    : type === 'goal'
+      ? goalSuggestions.map((itemIdea) => ({ id: itemIdea.title, label: itemIdea.title, icon: itemIdea.icon }))
+      : goodHabitSuggestions.map((itemIdea) => ({ id: itemIdea.name, label: itemIdea.name, icon: itemIdea.icon }));
 
   const submit = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -125,7 +142,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           icon: icon.trim() || '✦',
           color,
           frequency,
-          reminder_time: remind ? normalizeTimeKey(reminderTime) : null,
         });
       } else {
         await onSave(item.id, {
@@ -146,12 +162,23 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="edit-modal"
+        className={`edit-modal${type === 'habit' ? ' is-habit' : type === 'goal' ? ' is-goal' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-modal-title"
         onClick={(event) => event.stopPropagation()}
       >
+        {type === 'habit' || type === 'goal' ? (
+          <div className="quick-add-header">
+            <div>
+              <p className="eyebrow">{type === 'habit' ? 'EDIT HABIT' : 'EDIT GOAL'}</p>
+              <h3 id="edit-modal-title">{type === 'habit' ? 'Edit a habit' : 'Edit a goal'}</h3>
+            </div>
+            <button type="button" className="icon-button" onClick={onClose} aria-label="Close edit">
+              <X size={18} />
+            </button>
+          </div>
+        ) : (
         <div className="edit-modal-header">
           <div className="edit-modal-heading">
             <span className={`quick-icon ${copy.mark}`}>
@@ -166,89 +193,73 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
             <X size={18} />
           </button>
         </div>
+        )}
 
         <form className="edit-modal-body" onSubmit={(event) => void submit(event)}>
           {type === 'habit' ? (
             <>
-              <div className="edit-habit-preview">
+              <div className="quick-habit-preview">
                 <span className={`habit-icon habit-${color}`}>{icon}</span>
-                <Field label="Name">
-                  <input
-                    className="quick-input"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="e.g. Morning walk"
-                    autoFocus
-                  />
-                </Field>
+                <input
+                  className="quick-input"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g. Morning walk"
+                  autoFocus
+                />
               </div>
-              <Field label="Icon">
-                <div className="edit-chip-row">
-                  {shownIcons.map((value) => (
+              <div className="quick-habit-details">
+                <div className="quick-icon-head">
+                  <p className="quick-field-label">Icon</p>
+                  <span className="quick-icon-name">{shownIcons.find((itemIcon) => itemIcon.value === icon)?.label ?? 'Custom'}</span>
+                </div>
+                <div className="quick-icon-grid">
+                  {shownIcons.map((itemIcon) => (
                     <button
-                      key={value}
+                      key={itemIcon.value}
                       type="button"
-                      className={`edit-icon-chip ${icon === value ? 'is-active' : ''}`}
-                      onClick={() => setIcon(value)}
-                      aria-label={`Icon ${value}`}
+                      className={`quick-icon-pick ${icon === itemIcon.value ? 'is-active' : ''}`}
+                      onClick={() => setIcon(itemIcon.value)}
+                      aria-label={itemIcon.label}
+                      title={itemIcon.label}
                     >
-                      {value}
+                      {itemIcon.value}
                     </button>
                   ))}
                 </div>
-              </Field>
-              <Field label="Color">
-                <div className="edit-chip-row">
-                  {habitColors.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`edit-color-chip habit-${option.value} ${color === option.value ? 'is-active' : ''}`}
-                      onClick={() => setColor(option.value)}
-                    >
-                      <i />
-                      {option.label}
-                    </button>
-                  ))}
+                <div className="quick-habit-meta">
+                  <div>
+                    <p className="quick-field-label">Color</p>
+                    <div className="quick-color-row">
+                      {habitColors.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`quick-color-dot habit-${option.value} ${color === option.value ? 'is-active' : ''}`}
+                          onClick={() => setColor(option.value)}
+                          aria-label={option.label}
+                          title={option.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="quick-field-label">Repeat</p>
+                    <div className="quick-freq-row">
+                      {frequencies.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`edit-choice ${frequency === value ? 'is-active' : ''}`}
+                          onClick={() => setFrequency(value)}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </Field>
-              <Field label="Frequency">
-                <div className="edit-chip-row">
-                  {frequencies.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`edit-choice ${frequency === value ? 'is-active' : ''}`}
-                      onClick={() => setFrequency(value)}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Reminder">
-                <div className="edit-reminder-row">
-                  <button
-                    type="button"
-                    className={`edit-choice ${remind ? 'is-active' : ''}`}
-                    onClick={() => {
-                      const next = !remind;
-                      setRemind(next);
-                      if (next) void requestReminderPermission();
-                    }}
-                  >
-                    {remind ? 'On' : 'Off'}
-                  </button>
-                  {remind && (
-                    <input
-                      type="time"
-                      className="quick-input edit-time-input"
-                      value={reminderTime}
-                      onChange={(event) => setReminderTime(normalizeTimeKey(event.target.value))}
-                    />
-                  )}
-                </div>
-              </Field>
+              </div>
             </>
           ) : type === 'task' ? (
             <>
@@ -292,50 +303,51 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
             </>
           ) : (
             <>
-              <Field label="Title">
-                <input
-                  className="quick-input"
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="e.g. Launch my portfolio"
-                  autoFocus
-                />
-              </Field>
-              <Field label="Notes">
-                <textarea
-                  className="quick-input goal-notes-input"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Why it matters, or the next step"
-                  rows={3}
-                />
-              </Field>
-              <div className="edit-reminder-row">
-                <Field label="Progress">
-                  <input
-                    className="quick-input"
-                    type="number"
-                    min={0}
-                    max={9999}
-                    value={progress}
-                    onChange={(event) => setProgress(Number(event.target.value))}
-                  />
-                </Field>
-                <Field label="Target">
-                  <input
-                    className="quick-input"
-                    type="number"
-                    min={1}
-                    max={9999}
-                    value={target}
-                    onChange={(event) => setTarget(Number(event.target.value))}
-                  />
-                </Field>
-              </div>
+              <GoalFields
+                title={title}
+                notes={notes}
+                progress={progress}
+                target={target}
+                autoFocus
+                onTitleChange={setTitle}
+                onNotesChange={setNotes}
+                onProgressChange={setProgress}
+                onTargetChange={setTarget}
+              />
             </>
           )}
 
           {error && <p className="quick-error">{error}</p>}
+
+          <SuggestionChips
+            items={ideaItems}
+            expanded={showMoreIdeas}
+            onExpand={() => setShowMoreIdeas(true)}
+            onSelect={(id) => {
+              if (type === 'task') {
+                const task = taskSuggestions.find((itemIdea) => itemIdea.title === id);
+                if (!task) return;
+                setTitle(task.title);
+                setCategory(task.category);
+                setPriority(task.priority);
+                return;
+              }
+              if (type === 'goal') {
+                const goal = goalSuggestions.find((itemIdea) => itemIdea.title === id);
+                if (!goal) return;
+                setTitle(goal.title);
+                setNotes(goal.notes);
+                setTarget(goal.target);
+                return;
+              }
+              const habit = goodHabitSuggestions.find((itemIdea) => itemIdea.name === id);
+              if (!habit) return;
+              setName(habit.name);
+              setIcon(habit.icon);
+              setColor(habit.color);
+              setFrequency(habit.frequency);
+            }}
+          />
 
           <div className="edit-modal-actions">
             <button type="button" className="button button-light" onClick={onClose} disabled={saving}>
