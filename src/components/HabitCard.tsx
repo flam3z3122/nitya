@@ -1,4 +1,6 @@
 import {
+  Ban,
+  CalendarCheck,
   Check,
   Clock3,
   Flame,
@@ -6,10 +8,11 @@ import {
   CircleHelp,
   Pencil,
   MoreHorizontal,
+  Undo2,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { Habit } from '@/types';
-import { formatReminderTime, localDateKey } from '@/lib/activity';
+import { formatReminderTime, catchUpFor, isWeeklyHabit, localDateKey, previousPeriodDone, previousPeriodSkipped } from '@/lib/activity';
 
 type HabitCardProps = {
   habit: Habit;
@@ -17,6 +20,9 @@ type HabitCardProps = {
   compact?: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
+  onMarkPrevious?: (id: string) => void;
+  onSkipPrevious?: (id: string) => void;
+  onUndoSkip?: (id: string) => void;
 };
 
 export function HabitCard({
@@ -25,10 +31,18 @@ export function HabitCard({
   compact = false,
   onDelete,
   onEdit,
+  onMarkPrevious,
+  onSkipPrevious,
+  onUndoSkip,
 }: HabitCardProps) {
   const handleDelete = () => {
     if (onDelete) onDelete(habit.id);
   };
+
+  const skips = habit.skips ?? [];
+  const catchUp = catchUpFor(habit.frequency);
+  const skipped = previousPeriodSkipped(skips, habit.frequency);
+  const missed = !previousPeriodDone(habit) && !skipped;
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -109,14 +123,15 @@ export function HabitCard({
 
           <span className="streak">
             <Flame size={13} fill="currentColor" />
-            {habit.streak} day streak
+            {habit.streak} {isWeeklyHabit(habit.frequency) ? 'week' : 'day'} streak
           </span>
 
           <span className="tooltip" aria-hidden>
             <CircleHelp size={14} />
             <span className="tooltip-text">
-              Streak counts consecutive completed days ending today
-              or the most recent completed day.
+              {isWeeklyHabit(habit.frequency)
+                ? 'Weekly habits count once per week. Streak is consecutive weeks with a check-in.'
+                : 'Streak counts consecutive completed days ending today or yesterday.'}
             </span>
           </span>
         </div>
@@ -132,12 +147,31 @@ export function HabitCard({
             return last7.map((date) => (
               <span
                 key={date}
-                className={`history-day ${habit.history.includes(date) ? 'done' : ''
-                  }`}
+                className={`history-day ${habit.history.includes(date) ? 'done' : skips.includes(date) ? 'skipped' : ''}`}
               />
             ));
           })()}
         </div>
+
+        {(() => {
+          if (!missed && !skipped) return null;
+          return (
+            <div className="habit-catchup">
+              {skipped ? (
+                <>
+                  <span>Skipped {catchUp.label}</span>
+                  {onUndoSkip && <button type="button" onClick={() => onUndoSkip(habit.id)}>Undo</button>}
+                </>
+              ) : (
+                <>
+                  <span>Missed {catchUp.label}</span>
+                  {onMarkPrevious && <button type="button" onClick={() => onMarkPrevious(habit.id)}>Mark done</button>}
+                  {onSkipPrevious && <button type="button" onClick={() => onSkipPrevious(habit.id)}>Skip</button>}
+                </>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <button
@@ -171,6 +205,45 @@ export function HabitCard({
           </button>
           {open && (
             <div className="menu" ref={menuRef}>
+              {missed && onMarkPrevious && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    onMarkPrevious(habit.id);
+                  }}
+                >
+                  <span className="menu-icon"><CalendarCheck size={14} /></span>
+                  <span>Mark {catchUp.label}</span>
+                </button>
+              )}
+              {missed && onSkipPrevious && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    onSkipPrevious(habit.id);
+                  }}
+                >
+                  <span className="menu-icon"><Ban size={14} /></span>
+                  <span>Skip {catchUp.label}</span>
+                </button>
+              )}
+              {skipped && onUndoSkip && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    onUndoSkip(habit.id);
+                  }}
+                >
+                  <span className="menu-icon"><Undo2 size={14} /></span>
+                  <span>Undo skip</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={(e) => {

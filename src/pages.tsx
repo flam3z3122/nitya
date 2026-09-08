@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, Flame, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, TrendingUp, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
-import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
+import { EmptyState } from '@/components/EmptyState';
+import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
 import { requestReminderPermission } from '@/hooks/useReminders';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
@@ -9,9 +10,9 @@ import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
-type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: () => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; userName?: string };
+type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; onMarkPrevious: (id: string) => void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void; userName?: string };
 
-const pageMeta: Record<Screen, { eyebrow: string; title: string }> = { today: { eyebrow: '', title: '' }, habits: { eyebrow: 'YOUR ROUTINES', title: 'Habits' }, calendar: { eyebrow: 'YOUR HISTORY', title: 'Calendar' }, statistics: { eyebrow: 'YOUR MOMENTUM', title: 'Statistics' }, profile: { eyebrow: 'YOUR SPACE', title: 'Profile' } };
+const pageMeta: Record<Screen, { eyebrow: string; title: string }> = { today: { eyebrow: '', title: '' }, tasks: { eyebrow: 'YOUR LIST', title: 'Tasks' }, habits: { eyebrow: 'YOUR ROUTINES', title: 'Habits' }, progress: { eyebrow: 'YOUR MOMENTUM', title: 'Progress' }, profile: { eyebrow: 'YOUR SPACE', title: 'Profile' } };
 
 function getGreeting() { const hour = new Date().getHours(); if (hour < 12) return 'Good morning'; if (hour < 18) return 'Good afternoon'; return 'Good evening'; }
 
@@ -19,7 +20,7 @@ function formatDate() { return new Date().toLocaleDateString('en-US', { weekday:
 
 export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
-export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onEditTask, onEditHabit, onEditGoal, userName }: TodayProps) {
+export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, onMarkPrevious, onSkipPrevious, onUndoSkip, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
   const visibleTasks = tasks.slice(0, 3);
@@ -67,11 +68,17 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
           <section className="content-section">
             <div className="section-heading">
               <div><p className="eyebrow">FOCUS FOR TODAY</p><h2>Today&apos;s tasks</h2></div>
-              <button className="text-button" onClick={() => onNavigate('calendar')}>View history <ArrowRight size={15} /></button>
+              <button className="text-button" onClick={() => onNavigate('tasks')}>View all <ArrowRight size={15} /></button>
             </div>
             <div className="task-list">
-              {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
-              {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('calendar')}>+{remainingTasks} more</button>}
+              {tasks.length === 0 ? (
+                <EmptyState title="No tasks yet" message="Add something you want to get done today." actionLabel="Add a task" onAction={() => onQuickAdd('task')} />
+              ) : (
+                <>
+                  {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
+                  {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('tasks')}>+{remainingTasks} more</button>}
+                </>
+              )}
             </div>
           </section>
           <section className="content-section">
@@ -80,7 +87,22 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               <button className="text-button" onClick={() => onNavigate('habits')}>Manage <ArrowRight size={15} /></button>
             </div>
             <div className="habit-list">
-              {habits.slice(0, 3).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={(id) => void onToggleHabit(id, !habit.completed)} onEdit={onEditHabit} compact />)}
+              {habits.length === 0 ? (
+                <EmptyState title="No habits yet" message="Start a small routine you can repeat." actionLabel="Add a habit" onAction={() => onQuickAdd('habit')} />
+              ) : (
+                habits.slice(0, 3).map((habit) => (
+                  <HabitCard
+                    key={habit.id}
+                    habit={habit}
+                    onToggle={(id) => void onToggleHabit(id, !habit.completed)}
+                    onEdit={onEditHabit}
+                    onMarkPrevious={(id) => void onMarkPrevious(id)}
+                    onSkipPrevious={onSkipPrevious}
+                    onUndoSkip={onUndoSkip}
+                    compact
+                  />
+                ))
+              )}
             </div>
           </section>
         </div>
@@ -110,10 +132,108 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
   );
 }
 
-type HabitsProps = { habits: Habit[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void>; onQuickAdd: () => void; onEdit: (id: string) => void };
-export function HabitsPage({ habits, onToggle, onDelete, onQuickAdd, onEdit }: HabitsProps) { const [filter, setFilter] = useState('All habits'); return <div className="page-content"><PageHeader screen="habits" action={<button className="button button-dark" onClick={onQuickAdd}><span>+</span> New habit</button>} /><div className="subpage-intro"><div className="mini-stat"><div className="mini-stat-icon"><Flame size={18} /></div><div><strong>{Math.max(0, ...habits.map((habit) => habit.streak))} days</strong><span>longest current streak</span></div></div><div className="mini-stat"><div className="mini-stat-icon blue"><TrendingUp size={18} /></div><div><strong>{habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%</strong><span>today&apos;s consistency</span></div></div></div><div className="filter-row"><button className={filter === 'All habits' ? 'filter active' : 'filter'} onClick={() => setFilter('All habits')}>All habits</button><button className={filter === 'Daily' ? 'filter active' : 'filter'} onClick={() => setFilter('Daily')}>Daily</button><button className={filter === 'Weekly' ? 'filter active' : 'filter'} onClick={() => setFilter('Weekly')}>Weekly</button></div><section className="habit-grid">{habits.filter((habit) => filter === 'All habits' || (filter === 'Daily' ? habit.frequency === 'Daily' : habit.frequency !== 'Daily')).map((habit) => <HabitCard key={habit.id} habit={habit} onToggle={(id) => void onToggle(id, !habit.completed)} onDelete={(id) => void onDelete(id)} onEdit={onEdit} />)}</section></div>; }
+type HabitsProps = { habits: Habit[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void>; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEdit: (id: string) => void; onMarkPrevious: (id: string) => Promise<void> | void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void };
 
-export function CalendarPage({ habits }: { habits: Habit[] }) {
+type TasksProps = { tasks: Task[]; onToggle: (id: string, completed: boolean) => Promise<void>; onDelete: (id: string) => Promise<void>; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEdit: (id: string) => void };
+
+export function TasksPage({ tasks, onToggle, onDelete, onQuickAdd, onEdit }: TasksProps) {
+  const [filter, setFilter] = useState<'All' | 'Open' | 'Done'>('All');
+  const openCount = tasks.filter((task) => !task.completed).length;
+  const doneCount = tasks.filter((task) => task.completed).length;
+  const visible = tasks
+    .filter((task) => filter === 'All' || (filter === 'Open' ? !task.completed : task.completed))
+    .slice()
+    .sort((a, b) => Number(a.completed) - Number(b.completed));
+
+  return (
+    <div className="page-content">
+      <PageHeader screen="tasks" action={<button className="button button-dark" onClick={() => onQuickAdd('task')}><span>+</span> New task</button>} />
+      <div className="subpage-intro">
+        <div className="mini-stat">
+          <div className="mini-stat-icon"><ListChecks size={18} /></div>
+          <div><strong>{openCount} open</strong><span>still to do</span></div>
+        </div>
+        <div className="mini-stat">
+          <div className="mini-stat-icon blue"><Check size={18} /></div>
+          <div><strong>{doneCount} done</strong><span>completed</span></div>
+        </div>
+      </div>
+      <div className="filter-row">
+        {(['All', 'Open', 'Done'] as const).map((value) => (
+          <button key={value} className={filter === value ? 'filter active' : 'filter'} onClick={() => setFilter(value)}>{value}</button>
+        ))}
+      </div>
+      {visible.length === 0 ? (
+        <EmptyState
+          title={filter === 'Done' ? 'Nothing completed yet' : filter === 'Open' ? 'You are all caught up' : 'No tasks yet'}
+          message={filter === 'All' ? 'Add a task from here or from Today.' : 'Switch filters to see the rest of your list.'}
+          actionLabel={filter === 'All' ? 'Add a task' : undefined}
+          onAction={filter === 'All' ? () => onQuickAdd('task') : undefined}
+        />
+      ) : (
+        <section className="task-list">
+          {visible.map((task) => (
+            <TaskCard key={task.id} task={task} onToggle={(id) => void onToggle(id, !task.completed)} onDelete={(id) => void onDelete(id)} onEdit={onEdit} />
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}
+
+export function HabitsPage({ habits, onToggle, onDelete, onQuickAdd, onEdit, onMarkPrevious, onSkipPrevious, onUndoSkip }: HabitsProps) {
+  const [filter, setFilter] = useState('All habits');
+  const top = habits.reduce<Habit | null>((best, habit) => (!best || habit.streak > best.streak ? habit : best), null);
+  const streakLabel = top && top.streak > 0
+    ? `${top.streak} ${isWeeklyHabit(top.frequency) ? 'wk' : 'days'}`
+    : '0 days';
+  const visible = habits.filter((habit) => filter === 'All habits' || (filter === 'Daily' ? !isWeeklyHabit(habit.frequency) : isWeeklyHabit(habit.frequency)));
+  return (
+    <div className="page-content">
+      <PageHeader screen="habits" action={<button className="button button-dark" onClick={() => onQuickAdd('habit')}><span>+</span> New habit</button>} />
+      <div className="subpage-intro">
+        <div className="mini-stat">
+          <div className="mini-stat-icon"><Flame size={18} /></div>
+          <div><strong>{streakLabel}</strong><span>longest current streak</span></div>
+        </div>
+        <div className="mini-stat">
+          <div className="mini-stat-icon blue"><TrendingUp size={18} /></div>
+          <div><strong>{habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%</strong><span>due this period</span></div>
+        </div>
+      </div>
+      <div className="filter-row">
+        <button className={filter === 'All habits' ? 'filter active' : 'filter'} onClick={() => setFilter('All habits')}>All habits</button>
+        <button className={filter === 'Daily' ? 'filter active' : 'filter'} onClick={() => setFilter('Daily')}>Daily</button>
+        <button className={filter === 'Weekly' ? 'filter active' : 'filter'} onClick={() => setFilter('Weekly')}>Weekly</button>
+      </div>
+      {visible.length === 0 ? (
+        <EmptyState
+          title={habits.length === 0 ? 'No habits yet' : `No ${filter.toLowerCase()} yet`}
+          message={habits.length === 0 ? 'Add a routine you want to keep.' : 'Try another filter, or create a habit.'}
+          actionLabel="Add a habit"
+          onAction={() => onQuickAdd('habit')}
+        />
+      ) : (
+        <section className="habit-grid">
+          {visible.map((habit) => (
+            <HabitCard
+              key={habit.id}
+              habit={habit}
+              onToggle={(id) => void onToggle(id, !habit.completed)}
+              onDelete={(id) => void onDelete(id)}
+              onEdit={onEdit}
+              onMarkPrevious={(id) => void onMarkPrevious(id)}
+              onSkipPrevious={onSkipPrevious}
+              onUndoSkip={onUndoSkip}
+            />
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}
+
+export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[] }) {
   const now = new Date();
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
   const [selected, setSelected] = useState(now.getDate());
@@ -121,8 +241,22 @@ export function CalendarPage({ habits }: { habits: Habit[] }) {
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const selectedDate = new Date(cursor.year, cursor.month, selected);
   const selectedKey = dateKey(cursor.year, cursor.month, selected);
-  const doneToday = completedHabitsOn(habits, selectedKey);
+  const doneOnDay = completedHabitsOn(habits, selectedKey);
   const rate = dayCompletionRate(habits, selectedKey);
+  const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const total = tasks.length + habits.length;
+  const score = total ? Math.round((completed / total) * 100) : 0;
+  const week = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now);
+    date.setDate(now.getDate() - (6 - index));
+    const key = localDateKey(date);
+    return {
+      key,
+      label: date.toLocaleDateString('en-US', { weekday: 'narrow' }),
+      rate: dayCompletionRate(habits, key),
+      isToday: key === todayKey(),
+    };
+  });
   const cells = useMemo(() => {
     const blanks = mondayOffset(cursor.year, cursor.month);
     const days = daysInMonth(cursor.year, cursor.month);
@@ -141,14 +275,39 @@ export function CalendarPage({ habits }: { habits: Habit[] }) {
 
   return (
     <div className="page-content">
-      <PageHeader screen="calendar" />
-      <div className="calendar-layout">
+      <PageHeader screen="progress" />
+      <div className="score-banner">
+        <div>
+          <p className="eyebrow light">TODAY</p>
+          <h2>{(score / 10).toFixed(1)} <span>/ 10</span></h2>
+          <p>From tasks and habits checked off today.</p>
+        </div>
+        <div className="score-ring"><strong>{score}</strong><span>score</span></div>
+      </div>
+      <section className="stats-grid progress-stats">
+        <StatsCard label="Current streak" value={`${Math.max(0, ...habits.map((habit) => habit.streak))}`} helper="Best habit streak" icon={<Flame size={19} />} tone="orange" />
+        <StatsCard label="Due this period" value={`${habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%`} helper="Habits completed" icon={<TrendingUp size={19} />} tone="green" />
+      </section>
+      <section className="chart-card">
+        <div className="section-heading">
+          <div><p className="eyebrow">LAST 7 DAYS</p><h2>Activity</h2></div>
+        </div>
+        <div className="bar-chart">
+          {week.map((day) => (
+            <div className="bar-column" key={day.key}>
+              <div className={`bar ${day.isToday ? 'highlight' : ''}`} style={{ height: `${day.rate}%` }} />
+              <span>{day.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <div className="progress-history">
         <section className="calendar-card">
           <div className="calendar-top">
             <button className="icon-button" onClick={() => moveMonth(-1)} aria-label="Previous month"><ChevronLeft size={18} /></button>
             <div>
               <strong>{monthLabel}</strong>
-              <span>{isCurrentMonth ? 'Today' : `${doneToday.length} done this day`}</span>
+              <span>{isCurrentMonth ? 'This month' : 'Past month'}</span>
             </div>
             <button className="icon-button" onClick={() => moveMonth(1)} aria-label="Next month"><ChevronRight size={18} /></button>
           </div>
@@ -167,10 +326,6 @@ export function CalendarPage({ habits }: { habits: Habit[] }) {
                 </button>
               ))}
           </div>
-          <div className="calendar-legend">
-            <span><i className="legend-dot filled" /> Habit completed</span>
-            <span><i className="legend-dot" /> No activity</span>
-          </div>
         </section>
         <section className="day-detail">
           <div className="detail-date">
@@ -181,17 +336,17 @@ export function CalendarPage({ habits }: { habits: Habit[] }) {
             <div className="date-number">{selected}</div>
           </div>
           <div className="detail-progress">
-            <div><span>Daily completion</span><strong>{rate}%</strong></div>
+            <div><span>Completion</span><strong>{rate}%</strong></div>
             <div className="progress-track"><div className="progress-fill" style={{ width: `${rate}%` }} /></div>
           </div>
           <div className="detail-items">
-            <p className="eyebrow">ACTIVITY</p>
-            {doneToday.length === 0 ? (
+            <p className="eyebrow">HABITS</p>
+            {doneOnDay.length === 0 ? (
               <div className="detail-item">
                 <span className="detail-item-icon yellow"><Flame size={17} /></span>
-                <div><strong>No habits completed</strong><small>Check in on a habit to see it here</small></div>
+                <div><strong>Nothing logged</strong><small>Check in on a habit to see it here</small></div>
               </div>
-            ) : doneToday.map((habit) => (
+            ) : doneOnDay.map((habit) => (
               <div className="detail-item" key={habit.id}>
                 <span className={`detail-item-icon green habit-icon habit-${habit.color}`}>{habit.icon}</span>
                 <div><strong>{habit.name}</strong><small>{habit.frequency}</small></div>
@@ -201,82 +356,6 @@ export function CalendarPage({ habits }: { habits: Habit[] }) {
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-export function StatisticsPage({ tasks, habits }: { tasks: Task[]; habits: Habit[] }) {
-  const now = new Date();
-  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
-  const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
-  const total = tasks.length + habits.length;
-  const score = total ? Math.round((completed / total) * 100) : 0;
-  const week = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(now);
-    date.setDate(now.getDate() - (6 - index));
-    const key = localDateKey(date);
-    return {
-      key,
-      label: date.toLocaleDateString('en-US', { weekday: 'narrow' }),
-      rate: dayCompletionRate(habits, key),
-      isToday: key === todayKey(),
-    };
-  });
-  const monthDays = daysInMonth(now.getFullYear(), now.getMonth());
-  const monthCells = Array.from({ length: monthDays }, (_, index) => {
-    const key = dateKey(now.getFullYear(), now.getMonth(), index + 1);
-    const count = completedHabitsOn(habits, key).length;
-    return {
-      key,
-      tone: count === 0 ? '' : habits.length > 0 && count >= habits.length ? 'complete' : 'partial',
-    };
-  });
-  const elapsed = now.getDate();
-  const activeDays = monthCells.slice(0, elapsed).filter((cell) => cell.tone !== '').length;
-  const monthRate = elapsed ? Math.round((activeDays / elapsed) * 100) : 0;
-
-  return (
-    <div className="page-content">
-      <PageHeader screen="statistics" action={<span className="button button-light"><Clock3 size={15} /> {monthName}</span>} />
-      <div className="score-banner">
-        <div>
-          <p className="eyebrow light">YOUR DAILY SCORE</p>
-          <h2>{(score / 10).toFixed(1)} <span>/ 10</span></h2>
-          <p>Based on your completed tasks and habits today.</p>
-        </div>
-        <div className="score-ring"><strong>{score}</strong><span>score</span></div>
-      </div>
-      <section className="stats-grid">
-        <StatsCard label="Current streak" value={`${Math.max(0, ...habits.map((habit) => habit.streak))} days`} helper="From habit history" icon={<Flame size={19} />} tone="orange" />
-        <StatsCard label="Completed today" value={`${completed}`} helper={`of ${total} items`} icon={<Target size={19} />} tone="blue" />
-        <StatsCard label="Habit consistency" value={`${habits.length ? Math.round((habits.filter((habit) => habit.completed).length / habits.length) * 100) : 0}%`} helper="Today&apos;s completion" icon={<TrendingUp size={19} />} tone="green" />
-      </section>
-      <section className="chart-card">
-        <div className="section-heading">
-          <div><p className="eyebrow">WEEKLY MOMENTUM</p><h2>Activity overview</h2></div>
-        </div>
-        <div className="bar-chart">
-          {week.map((day) => (
-            <div className="bar-column" key={day.key}>
-              <div className={`bar ${day.isToday ? 'highlight' : ''}`} style={{ height: `${day.rate}%` }} />
-              <span>{day.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="consistency-card">
-        <div>
-          <p className="eyebrow">MONTHLY PROGRESS</p>
-          <h2>A month of momentum</h2>
-        </div>
-        <div className="month-row">
-          {monthCells.map((cell) => <i key={cell.key} className={cell.tone} />)}
-        </div>
-        <div className="consistency-footer">
-          <span>{activeDays} active day{activeDays === 1 ? '' : 's'} this month</span>
-          <strong>{monthRate}%</strong>
-        </div>
-      </section>
     </div>
   );
 }

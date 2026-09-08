@@ -7,9 +7,9 @@ import { EditModal } from '@/components/EditModal';
 import type { EditItem, EditType, EditUpdates } from '@/components/EditModal';
 import {
   TodayPage,
+  TasksPage,
   HabitsPage,
-  CalendarPage,
-  StatisticsPage,
+  ProgressPage,
   ProfilePage,
 } from '@/pages';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +21,7 @@ import type { Goal, Habit, Task } from '@/types';
 function App() {
   const [screen, setScreen] = useHashRoute();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickIntent, setQuickIntent] = useState<'task' | 'habit' | 'goal' | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
   const auth = useAuth();
@@ -60,6 +61,12 @@ function App() {
     setEditOpen(false);
     setEditType(null);
     setEditItem(null);
+  };
+
+  const openQuickAdd = (type?: 'task' | 'habit' | 'goal') => {
+    const intent = type === 'task' || type === 'habit' || type === 'goal' ? type : null;
+    setQuickIntent(intent);
+    setQuickAddOpen(true);
   };
 
   const saveEdit = async (id: string, updates: EditUpdates) => {
@@ -142,24 +149,36 @@ function App() {
         onDeleteHabit={data.deleteHabit}
         onDeleteGoal={data.deleteGoal}
         onNavigate={setScreen}
-        onQuickAdd={() => setQuickAddOpen(true)}
+        onQuickAdd={openQuickAdd}
         onEditTask={(id) => openEdit('task', id)}
         onEditHabit={(id) => openEdit('habit', id)}
         onEditGoal={(id) => openEdit('goal', id)}
+        onMarkPrevious={data.markPreviousPeriod}
+        onSkipPrevious={data.skipPreviousPeriod}
+        onUndoSkip={data.undoSkipPreviousPeriod}
         userName={data.profile?.name}
+      />
+    ) : screen === 'tasks' ? (
+      <TasksPage
+        tasks={data.tasks}
+        onToggle={data.toggleTask}
+        onDelete={data.deleteTask}
+        onQuickAdd={openQuickAdd}
+        onEdit={(id) => openEdit('task', id)}
       />
     ) : screen === 'habits' ? (
       <HabitsPage
         habits={data.habits}
         onToggle={data.toggleHabit}
         onDelete={data.deleteHabit}
-        onQuickAdd={() => setQuickAddOpen(true)}
+        onQuickAdd={openQuickAdd}
         onEdit={(id) => openEdit('habit', id)}
+        onMarkPrevious={data.markPreviousPeriod}
+        onSkipPrevious={data.skipPreviousPeriod}
+        onUndoSkip={data.undoSkipPreviousPeriod}
       />
-    ) : screen === 'calendar' ? (
-      <CalendarPage habits={data.habits} />
-    ) : screen === 'statistics' ? (
-      <StatisticsPage
+    ) : screen === 'progress' ? (
+      <ProgressPage
         tasks={data.tasks}
         habits={data.habits}
       />
@@ -194,11 +213,14 @@ function App() {
 
       <QuickAdd
         open={quickAddOpen}
-        onClose={() =>
-          setQuickAddOpen((value) => !value)
-        }
+        intent={quickIntent}
+        onOpen={openQuickAdd}
+        onClose={() => {
+          setQuickAddOpen(false);
+          setQuickIntent(null);
+        }}
         onCreateTask={data.createTask}
-        onCreateHabit={data.createHabit}
+        onCreateHabit={data.createHabitWithDetails}
         onCreateGoal={data.createGoal}
       />
 
