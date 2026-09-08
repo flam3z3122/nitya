@@ -79,7 +79,7 @@ function App() {
     }
 
     if (editType === 'goal') {
-      await data.updateGoal(id, updates as Partial<Pick<Goal, 'title'>>);
+      await data.updateGoal(id, updates as Partial<Pick<Goal, 'title' | 'notes' | 'target' | 'progress'>>);
     }
   };
 
@@ -153,6 +153,7 @@ function App() {
         onEditTask={(id) => openEdit('task', id)}
         onEditHabit={(id) => openEdit('habit', id)}
         onEditGoal={(id) => openEdit('goal', id)}
+        onCheckInGoal={(id) => void data.checkInGoal(id)}
         onMarkPrevious={data.markPreviousPeriod}
         onSkipPrevious={data.skipPreviousPeriod}
         onUndoSkip={data.undoSkipPreviousPeriod}

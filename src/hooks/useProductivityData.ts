@@ -5,8 +5,34 @@ import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
 type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null };
-type GoalRow = { id: string; title: string };
+type GoalRow = { id: string; title: string; notes?: string | null; target?: number | null; progress?: number | null };
 type CompletionRow = { habit_id: string; completed_on: string };
+type SkipRow = { habit_id: string; skipped_on: string };
+
+function dateValue(value: string): string {
+  return String(value).slice(0, 10);
+}
+
+function mapGoal(row: GoalRow): Goal {
+  const target = Math.max(1, row.target ?? 10);
+  const progress = Math.max(0, row.progress ?? 0);
+  return {
+    id: row.id,
+    title: row.title,
+    notes: row.notes ?? '',
+    target,
+    progress: Math.min(progress, target),
+  };
+}
+
+function skipsByHabit(rows: SkipRow[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const row of rows) {
+    const key = dateValue(row.skipped_on);
+    (map[row.habit_id] ??= []).push(key);
+  }
+  return map;
+}
 
 const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null };
 
@@ -54,15 +80,39 @@ export function useProductivityData(userId: string | null) {
     if (!userId) { setState({ ...initialState, loading: false }); return; }
     setState((current) => ({ ...current, loading: true, error: null }));
     await ensureWelcomeTask();
-    let [tasksResult, habitsResult, goalsResult, completionsResult, profileResult] = await Promise.all([
+    let [tasksResult, habitsResult, goalsResult, completionsResult, skipsResult, profileResult] = await Promise.all([
       supabase.from('tasks').select('id, title, category, priority, due_label, completed').order('created_at', { ascending: true }),
       supabase.from('habits').select('id, name, icon, color, frequency, reminder_time').order('created_at', { ascending: true }),
-      supabase.from('goals').select('id, title').order('created_at', { ascending: true }),
+      supabase.from('goals').select('id, title, notes, target, progress').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
+      supabase.from('habit_skips').select('habit_id, skipped_on'),
       supabase.auth.getSession().then(({ data }) => data.session?.user ?? null),
     ]);
     if (habitsResult.error?.message.includes('reminder_time')) {
       habitsResult = await supabase.from('habits').select('id, name, icon, color, frequency').order('created_at', { ascending: true });
+    }
+    if (goalsResult.error?.message.match(/notes|target|progress/)) {
+      goalsResult = await supabase.from('goals').select('id, title').order('created_at', { ascending: true });
+    }
+    const localSkips = readSkipMap(userId);
+    let skipMap = localSkips;
+    if (!skipsResult.error) {
+      skipMap = skipsByHabit((skipsResult.data ?? []) as SkipRow[]);
+      const pending: { habit_id: string; skipped_on: string }[] = [];
+      for (const [habitId, dates] of Object.entries(localSkips)) {
+        for (const date of dates) {
+          if (!(skipMap[habitId] ?? []).includes(date)) {
+            pending.push({ habit_id: habitId, skipped_on: date });
+            (skipMap[habitId] ??= []).push(date);
+          }
+        }
+      }
+      if (pending.length > 0) {
+        await supabase.from('habit_skips').upsert(pending, { onConflict: 'user_id,habit_id,skipped_on' });
+        localStorage.removeItem(skipStorageKey(userId));
+      } else if (Object.keys(localSkips).length > 0) {
+        localStorage.removeItem(skipStorageKey(userId));
+      }
     }
     const failure = tasksResult.error ?? habitsResult.error ?? goalsResult.error ?? completionsResult.error;
     if (failure) { setState((current) => ({ ...current, loading: false, error: toFriendlyError(failure.message) })); return; }
@@ -73,7 +123,6 @@ export function useProductivityData(userId: string | null) {
     const today = todayKey();
     const sessionUser = profileResult as { id: string; email: string } | null;
     const profile = sessionUser ? await ensureProfile(sessionUser.id, sessionUser.email) : null;
-    const skipMap = readSkipMap(userId);
     setState({
       tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime' })),
       habits: habitRows.map((habit) => {
@@ -90,7 +139,7 @@ export function useProductivityData(userId: string | null) {
           skips,
         };
       }),
-      goals: goalRows.map((goal) => ({ id: goal.id, title: goal.title })),
+      goals: goalRows.map((goal) => mapGoal(goal)),
       completions: completionRows.map((item) => item.completed_on),
       profile,
       loading: false,
@@ -144,10 +193,15 @@ export function useProductivityData(userId: string | null) {
   }, []);
 
   const createGoal = useCallback(async (title: string) => {
-    const { data, error } = await supabase.from('goals').insert({ title }).select('id, title').maybeSingle();
+    const payload = { title, notes: '', target: 10, progress: 0 };
+    let { data, error } = await supabase.from('goals').insert(payload).select('id, title, notes, target, progress').maybeSingle();
+    if (error) {
+      const fallback = await supabase.from('goals').insert({ title }).select('id, title').maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error || !data) throw new Error('Goal could not be created.');
-    const goal = data as GoalRow;
-    setState((current) => ({ ...current, goals: [...current.goals, { id: goal.id, title: goal.title }] }));
+    setState((current) => ({ ...current, goals: [...current.goals, mapGoal(data as GoalRow)] }));
   }, []);
 
   const createHabit = useCallback(async (name: string) => {
@@ -199,16 +253,33 @@ export function useProductivityData(userId: string | null) {
     }));
   }, []);
 
-  const updateGoal = useCallback(async (id: string, updates: Partial<Pick<Goal, 'title'>>) => {
-    const payload: Partial<Pick<Goal, 'title'>> = {};
+  const updateGoal = useCallback(async (id: string, updates: Partial<Pick<Goal, 'title' | 'notes' | 'target' | 'progress'>>) => {
+    const payload: Partial<Pick<Goal, 'title' | 'notes' | 'target' | 'progress'>> = {};
     if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.notes !== undefined) payload.notes = updates.notes;
+    if (updates.target !== undefined) payload.target = Math.max(1, updates.target);
+    if (updates.progress !== undefined) payload.progress = Math.max(0, updates.progress);
+    if (payload.target !== undefined && payload.progress === undefined) {
+      const current = stateRef.current.goals.find((goal) => goal.id === id);
+      if (current) payload.progress = Math.min(current.progress, payload.target);
+    }
+    if (payload.progress !== undefined && payload.target === undefined) {
+      const current = stateRef.current.goals.find((goal) => goal.id === id);
+      if (current) payload.progress = Math.min(payload.progress, current.target);
+    }
     const { error } = await supabase.from('goals').update(payload).eq('id', id);
     if (error) throw new Error('That goal could not be updated. Please try again.');
     setState((current) => ({
       ...current,
-      goals: current.goals.map((goal) => goal.id === id ? { ...goal, ...updates } : goal),
+      goals: current.goals.map((goal) => goal.id === id ? mapGoal({ ...goal, ...payload }) : goal),
     }));
   }, []);
+
+  const checkInGoal = useCallback(async (id: string) => {
+    const goal = stateRef.current.goals.find((item) => item.id === id);
+    if (!goal || goal.progress >= goal.target) return;
+    await updateGoal(id, { progress: goal.progress + 1 });
+  }, [updateGoal]);
 
   const deleteTask = useCallback(async (id: string) => {
     const { error } = await supabase.from('tasks').delete().eq('id', id);
@@ -252,10 +323,13 @@ export function useProductivityData(userId: string | null) {
     const catchUp = catchUpFor(habit.frequency);
     const { error } = await supabase.from('habit_completions').upsert({ habit_id: id, completed_on: catchUp.completeOn }, { onConflict: 'user_id,habit_id,completed_on' });
     if (error) { setState((current) => ({ ...current, error: 'That day could not be updated. Please try again.' })); return; }
-    const skipMap = readSkipMap(userId);
-    const skips = (skipMap[id] ?? []).filter((date) => date !== catchUp.skipKey);
-    skipMap[id] = skips;
-    writeSkipMap(userId, skipMap);
+    const skipDelete = await supabase.from('habit_skips').delete().eq('habit_id', id).eq('skipped_on', catchUp.skipKey);
+    const skips = habit.skips.filter((date) => date !== catchUp.skipKey);
+    if (skipDelete.error) {
+      const skipMap = readSkipMap(userId);
+      skipMap[id] = skips;
+      writeSkipMap(userId, skipMap);
+    }
     setState((current) => ({
       ...current,
       habits: current.habits.map((item) => {
@@ -267,14 +341,17 @@ export function useProductivityData(userId: string | null) {
     }));
   }, [userId]);
 
-  const skipPreviousPeriod = useCallback((id: string) => {
+  const skipPreviousPeriod = useCallback(async (id: string) => {
     const habit = stateRef.current.habits.find((item) => item.id === id);
     if (!habit || !userId) return;
     const catchUp = catchUpFor(habit.frequency);
-    const skipMap = readSkipMap(userId);
-    const skips = Array.from(new Set([...(skipMap[id] ?? []), catchUp.skipKey]));
-    skipMap[id] = skips;
-    writeSkipMap(userId, skipMap);
+    const { error } = await supabase.from('habit_skips').upsert({ habit_id: id, skipped_on: catchUp.skipKey }, { onConflict: 'user_id,habit_id,skipped_on' });
+    const skips = Array.from(new Set([...habit.skips, catchUp.skipKey]));
+    if (error) {
+      const skipMap = readSkipMap(userId);
+      skipMap[id] = skips;
+      writeSkipMap(userId, skipMap);
+    }
     setState((current) => ({
       ...current,
       habits: current.habits.map((item) => {
@@ -284,14 +361,17 @@ export function useProductivityData(userId: string | null) {
     }));
   }, [userId]);
 
-  const undoSkipPreviousPeriod = useCallback((id: string) => {
+  const undoSkipPreviousPeriod = useCallback(async (id: string) => {
     const habit = stateRef.current.habits.find((item) => item.id === id);
     if (!habit || !userId) return;
     const catchUp = catchUpFor(habit.frequency);
-    const skipMap = readSkipMap(userId);
-    const skips = (skipMap[id] ?? []).filter((date) => date !== catchUp.skipKey);
-    skipMap[id] = skips;
-    writeSkipMap(userId, skipMap);
+    const { error } = await supabase.from('habit_skips').delete().eq('habit_id', id).eq('skipped_on', catchUp.skipKey);
+    const skips = habit.skips.filter((date) => date !== catchUp.skipKey);
+    if (error) {
+      const skipMap = readSkipMap(userId);
+      skipMap[id] = skips;
+      writeSkipMap(userId, skipMap);
+    }
     setState((current) => ({
       ...current,
       habits: current.habits.map((item) => {
@@ -317,5 +397,5 @@ export function useProductivityData(userId: string | null) {
     }
   }, []);
 
-  return { ...state, reload: load, toggleTask, toggleHabit, markPreviousPeriod, skipPreviousPeriod, undoSkipPreviousPeriod, createTask, createHabit, createHabitWithDetails, createGoal, updateTask, updateHabit, updateGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding, deleteAccount };
+  return { ...state, reload: load, toggleTask, toggleHabit, markPreviousPeriod, skipPreviousPeriod, undoSkipPreviousPeriod, createTask, createHabit, createHabitWithDetails, createGoal, checkInGoal, updateTask, updateHabit, updateGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding, deleteAccount };
 }

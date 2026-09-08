@@ -10,7 +10,7 @@ import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
-type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; onMarkPrevious: (id: string) => void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void; userName?: string };
+type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; onCheckInGoal: (id: string) => void; onMarkPrevious: (id: string) => void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void; userName?: string };
 
 const pageMeta: Record<Screen, { eyebrow: string; title: string }> = { today: { eyebrow: '', title: '' }, tasks: { eyebrow: 'YOUR LIST', title: 'Tasks' }, habits: { eyebrow: 'YOUR ROUTINES', title: 'Habits' }, progress: { eyebrow: 'YOUR MOMENTUM', title: 'Progress' }, profile: { eyebrow: 'YOUR SPACE', title: 'Profile' } };
 
@@ -20,7 +20,7 @@ function formatDate() { return new Date().toLocaleDateString('en-US', { weekday:
 
 export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
-export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, onMarkPrevious, onSkipPrevious, onUndoSkip, userName }: TodayProps) {
+export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteHabit, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, onCheckInGoal, onMarkPrevious, onSkipPrevious, onUndoSkip, userName }: TodayProps) {
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
   const visibleTasks = tasks.slice(0, 3);
@@ -61,7 +61,7 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                 <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
               </div>
               <div className="goal-list">
-                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} />)}
+                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} onCheckIn={onCheckInGoal} />)}
               </div>
             </section>
           )}
