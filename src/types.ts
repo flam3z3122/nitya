@@ -25,6 +25,9 @@ export type Habit = {
 export type Goal = {
   id: string;
   title: string;
+  notes: string;
+  target: number;
+  progress: number;
 };
 
 export type ProfileSettings = {

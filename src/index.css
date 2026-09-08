@@ -302,3 +302,14 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .dark .habit-catchup button { background: rgba(63,160,116,0.14); color: var(--green); }
 .progress-history { display: grid; gap: 18px; margin-top: 18px; }
 @media (min-width: 760px) { .progress-history { grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); align-items: start; } }
+.progress-stats { grid-template-columns: 1fr 1fr; }
+.goal-card { align-items: flex-start; }
+.goal-body { min-width: 0; flex: 1; display: grid; gap: 5px; }
+.goal-title { white-space: normal; overflow: visible; text-overflow: unset; }
+.goal-notes { margin: 0; color: #8a9792; font-size: 11px; line-height: 1.4; }
+.goal-progress { display: flex; align-items: center; gap: 8px; }
+.goal-progress .progress-track { flex: 1; height: 6px; background: #e8eee9; border-radius: 99px; overflow: hidden; }
+.goal-progress .progress-fill { height: 100%; background: #4f9c80; border-radius: 99px; }
+.goal-progress span { flex: 0 0 auto; font-size: 10px; font-weight: 700; color: #668179; }
+.goal-notes-input { min-height: 84px; resize: vertical; }
+.dark .goal-progress .progress-track { background: #102028; }

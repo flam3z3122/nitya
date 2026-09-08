@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Target, Trash2 } from 'lucide-react';
+import { Check, MoreHorizontal, Pencil, Target, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Goal } from '@/types';
 
@@ -6,9 +6,10 @@ type GoalCardProps = {
   goal: Goal;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
+  onCheckIn?: (id: string) => void;
 };
 
-export function GoalCard({ goal, onDelete, onEdit }: GoalCardProps) {
+export function GoalCard({ goal, onDelete, onEdit, onCheckIn }: GoalCardProps) {
   const handleDelete = () => {
     if (onDelete) onDelete(goal.id);
   };
@@ -17,6 +18,8 @@ export function GoalCard({ goal, onDelete, onEdit }: GoalCardProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const idRef = useRef(`menu-${Math.random().toString(36).slice(2)}`);
+  const percent = Math.min(100, Math.round((goal.progress / Math.max(1, goal.target)) * 100));
+  const done = goal.progress >= goal.target;
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -48,9 +51,27 @@ export function GoalCard({ goal, onDelete, onEdit }: GoalCardProps) {
   }, [open]);
 
   return (
-    <div className="goal-card">
+    <div className={`goal-card ${done ? 'is-complete' : ''}`}>
       <span className="goal-icon"><Target size={18} /></span>
-      <p className="goal-title">{goal.title}</p>
+      <div className="goal-body">
+        <p className="goal-title">{goal.title}</p>
+        {goal.notes ? <p className="goal-notes">{goal.notes}</p> : null}
+        <div className="goal-progress">
+          <div className="progress-track"><div className="progress-fill" style={{ width: `${percent}%` }} /></div>
+          <span>{goal.progress}/{goal.target}</span>
+        </div>
+      </div>
+      {onCheckIn && (
+        <button
+          type="button"
+          className={`habit-check ${done ? 'is-complete' : ''}`}
+          onClick={() => onCheckIn(goal.id)}
+          disabled={done}
+          aria-label={done ? `${goal.title} complete` : `Add progress to ${goal.title}`}
+        >
+          {done ? <Check size={17} strokeWidth={3} /> : <span>+</span>}
+        </button>
+      )}
       <div className="overflow-menu" ref={ref}>
         <button
           ref={buttonRef}

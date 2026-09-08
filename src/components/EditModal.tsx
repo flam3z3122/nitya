@@ -9,7 +9,7 @@ export type EditItem = Task | Habit | Goal;
 export type EditUpdates =
   | Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>
   | Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>>
-  | Partial<Pick<Goal, 'title'>>;
+  | Partial<Pick<Goal, 'title' | 'notes' | 'target' | 'progress'>>;
 
 type EditModalProps = {
   open: boolean;
@@ -58,6 +58,9 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const [frequency, setFrequency] = useState('Daily');
   const [remind, setRemind] = useState(false);
   const [reminderTime, setReminderTime] = useState('08:00');
+  const [notes, setNotes] = useState('');
+  const [target, setTarget] = useState(10);
+  const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,6 +80,9 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       setReminderTime(item.reminder_time ? normalizeTimeKey(item.reminder_time) : '08:00');
     } else {
       setTitle(item.title);
+      setNotes(item.notes ?? '');
+      setTarget(item.target ?? 10);
+      setProgress(item.progress ?? 0);
     }
   }, [item, type]);
 
@@ -122,7 +128,12 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           reminder_time: remind ? normalizeTimeKey(reminderTime) : null,
         });
       } else {
-        await onSave(item.id, { title: title.trim() });
+        await onSave(item.id, {
+          title: title.trim(),
+          notes: notes.trim(),
+          target: Math.max(1, target),
+          progress: Math.min(Math.max(0, progress), Math.max(1, target)),
+        });
       }
       onClose();
     } catch (saveError) {
@@ -280,15 +291,48 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
               </Field>
             </>
           ) : (
-            <Field label="Title">
-              <input
-                className="quick-input"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="e.g. Launch my portfolio"
-                autoFocus
-              />
-            </Field>
+            <>
+              <Field label="Title">
+                <input
+                  className="quick-input"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="e.g. Launch my portfolio"
+                  autoFocus
+                />
+              </Field>
+              <Field label="Notes">
+                <textarea
+                  className="quick-input goal-notes-input"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Why it matters, or the next step"
+                  rows={3}
+                />
+              </Field>
+              <div className="edit-reminder-row">
+                <Field label="Progress">
+                  <input
+                    className="quick-input"
+                    type="number"
+                    min={0}
+                    max={9999}
+                    value={progress}
+                    onChange={(event) => setProgress(Number(event.target.value))}
+                  />
+                </Field>
+                <Field label="Target">
+                  <input
+                    className="quick-input"
+                    type="number"
+                    min={1}
+                    max={9999}
+                    value={target}
+                    onChange={(event) => setTarget(Number(event.target.value))}
+                  />
+                </Field>
+              </div>
+            </>
           )}
 
           {error && <p className="quick-error">{error}</p>}
