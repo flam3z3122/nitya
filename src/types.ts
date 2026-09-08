@@ -1,4 +1,4 @@
-export type Screen = 'today' | 'habits' | 'calendar' | 'statistics' | 'profile';
+export type Screen = 'today' | 'tasks' | 'habits' | 'progress' | 'profile';
 
 export type Task = {
   id: string;
@@ -18,6 +18,7 @@ export type Habit = {
   streak: number;
   completed: boolean;
   history: string[];
+  skips: string[];
   reminder_time: string | null;
 };
 

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Screen } from '@/types';
 
-const VALID_SCREENS: Screen[] = ['today', 'habits', 'calendar', 'statistics', 'profile'];
+const VALID_SCREENS: Screen[] = ['today', 'tasks', 'habits', 'progress', 'profile'];
+const LEGACY_SCREENS: Record<string, Screen> = { calendar: 'progress', statistics: 'progress', stats: 'progress' };
 
 function parseHash(): Screen {
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (VALID_SCREENS.includes(hash as Screen)) return hash as Screen;
+  if (hash in LEGACY_SCREENS) return LEGACY_SCREENS[hash];
   return 'today';
 }
 

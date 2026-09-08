@@ -1,10 +1,14 @@
-import { BarChart3, CalendarDays, CheckSquare, CircleUserRound, Leaf } from 'lucide-react';
+import { BarChart3, CheckSquare, CircleUserRound, Leaf, ListChecks } from 'lucide-react';
 import type { Screen } from '@/types';
 
 type NavigationProps = { active: Screen; onChange: (screen: Screen) => void; userEmail?: string };
 
 const items: { id: Screen; label: string; icon: typeof CheckSquare }[] = [
-  { id: 'today', label: 'Today', icon: CheckSquare }, { id: 'habits', label: 'Habits', icon: Leaf }, { id: 'calendar', label: 'Calendar', icon: CalendarDays }, { id: 'statistics', label: 'Stats', icon: BarChart3 }, { id: 'profile', label: 'Profile', icon: CircleUserRound },
+  { id: 'today', label: 'Today', icon: CheckSquare },
+  { id: 'tasks', label: 'Tasks', icon: ListChecks },
+  { id: 'habits', label: 'Habits', icon: Leaf },
+  { id: 'progress', label: 'Progress', icon: BarChart3 },
+  { id: 'profile', label: 'Profile', icon: CircleUserRound },
 ];
 
 export function Navigation({ active, onChange, userEmail }: NavigationProps) {
