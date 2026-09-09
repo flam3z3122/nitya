@@ -26,6 +26,7 @@ const defaultProps = {
   onSignOut: vi.fn(),
   onUpdateProfile: vi.fn().mockResolvedValue(undefined),
   onResendVerification: vi.fn().mockResolvedValue({ error: null }),
+  onDeleteAccount: vi.fn().mockResolvedValue(undefined),
 };
 
 function renderProfile(overrides: Record<string, unknown> = {}) {
