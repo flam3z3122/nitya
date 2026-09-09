@@ -20,6 +20,7 @@ export type Habit = {
   history: string[];
   skips: string[];
   reminder_time: string | null;
+  created_at: string;
 };
 
 export type Goal = {

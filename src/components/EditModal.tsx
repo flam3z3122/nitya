@@ -1,11 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { CheckSquare, Leaf, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
-import { SuggestionChips } from '@/components/SuggestionChips';
 import { GoalFields } from '@/components/GoalFields';
-import { goodHabitSuggestions } from '@/data/habitSuggestions';
-import { taskSuggestions } from '@/data/taskSuggestions';
-import { goalSuggestions } from '@/data/goalSuggestions';
 
 export type EditType = 'task' | 'habit' | 'goal';
 export type EditItem = Task | Habit | Goal;
@@ -73,12 +69,10 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showMoreIdeas, setShowMoreIdeas] = useState(false);
 
   useEffect(() => {
     if (!item || !type) return;
     setError(null);
-    setShowMoreIdeas(false);
     if (isTask(item, type)) {
       setTitle(item.title);
       setCategory(item.category);
@@ -118,11 +112,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   const shownIcons = habitIcons.some((itemIcon) => itemIcon.value === icon)
     ? habitIcons
     : [{ value: icon, label: 'Yours' } as const, ...habitIcons];
-  const ideaItems = type === 'task'
-    ? taskSuggestions.map((itemIdea) => ({ id: itemIdea.title, label: itemIdea.title, icon: itemIdea.icon }))
-    : type === 'goal'
-      ? goalSuggestions.map((itemIdea) => ({ id: itemIdea.title, label: itemIdea.title, icon: itemIdea.icon }))
-      : goodHabitSuggestions.map((itemIdea) => ({ id: itemIdea.name, label: itemIdea.name, icon: itemIdea.icon }));
 
   const submit = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -318,36 +307,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           )}
 
           {error && <p className="quick-error">{error}</p>}
-
-          <SuggestionChips
-            items={ideaItems}
-            expanded={showMoreIdeas}
-            onExpand={() => setShowMoreIdeas(true)}
-            onSelect={(id) => {
-              if (type === 'task') {
-                const task = taskSuggestions.find((itemIdea) => itemIdea.title === id);
-                if (!task) return;
-                setTitle(task.title);
-                setCategory(task.category);
-                setPriority(task.priority);
-                return;
-              }
-              if (type === 'goal') {
-                const goal = goalSuggestions.find((itemIdea) => itemIdea.title === id);
-                if (!goal) return;
-                setTitle(goal.title);
-                setNotes(goal.notes);
-                setTarget(goal.target);
-                return;
-              }
-              const habit = goodHabitSuggestions.find((itemIdea) => itemIdea.name === id);
-              if (!habit) return;
-              setName(habit.name);
-              setIcon(habit.icon);
-              setColor(habit.color);
-              setFrequency(habit.frequency);
-            }}
-          />
 
           <div className="edit-modal-actions">
             <button type="button" className="button button-light" onClick={onClose} disabled={saving}>

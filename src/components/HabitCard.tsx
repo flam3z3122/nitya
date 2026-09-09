@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { Habit } from '@/types';
-import { formatReminderTime, catchUpFor, isWeeklyHabit, localDateKey, previousPeriodDone, previousPeriodSkipped } from '@/lib/activity';
+import { formatReminderTime, canCatchUpPreviousPeriod, catchUpFor, isWeeklyHabit, localDateKey, previousPeriodDone, previousPeriodSkipped } from '@/lib/activity';
 
 type HabitCardProps = {
   habit: Habit;
@@ -41,7 +41,8 @@ export function HabitCard({
   const skips = habit.skips ?? [];
   const catchUp = catchUpFor(habit.frequency);
   const skipped = previousPeriodSkipped(skips, habit.frequency);
-  const missed = !previousPeriodDone(habit) && !skipped;
+  const eligible = canCatchUpPreviousPeriod(habit);
+  const missed = eligible && !previousPeriodDone(habit) && !skipped;
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -144,7 +145,7 @@ export function HabitCard({
         </div>
 
         {(() => {
-          if (!missed && !skipped) return null;
+          if (!missed && !(skipped && eligible)) return null;
           return (
             <div className="habit-catchup">
               {skipped ? (
@@ -221,7 +222,7 @@ export function HabitCard({
                   <span>Skip {catchUp.label}</span>
                 </button>
               )}
-              {skipped && onUndoSkip && (
+              {skipped && eligible && onUndoSkip && (
                 <button
                   type="button"
                   onClick={(e) => {

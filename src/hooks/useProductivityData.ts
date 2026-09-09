@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { catchUpFor, streakFromHistory, isWeeklyHabit, todayKey, weekContains, weekDateKeys } from '@/lib/activity';
+import { canCatchUpPreviousPeriod, catchUpFor, streakFromHistory, isWeeklyHabit, todayKey, weekContains, weekDateKeys } from '@/lib/activity';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
-type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null };
+type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null; created_at?: string };
 type GoalRow = { id: string; title: string; notes?: string | null; target?: number | null; progress?: number | null };
 type CompletionRow = { habit_id: string; completed_on: string };
 type SkipRow = { habit_id: string; skipped_on: string };
@@ -52,6 +52,18 @@ function writeSkipMap(userId: string, map: Record<string, string[]>) {
   localStorage.setItem(skipStorageKey(userId), JSON.stringify(map));
 }
 
+function mapNewHabit(habit: HabitRow): Habit {
+  return {
+    ...habit,
+    reminder_time: habit.reminder_time ?? null,
+    created_at: habit.created_at ?? new Date().toISOString(),
+    completed: false,
+    streak: 0,
+    history: [],
+    skips: [],
+  };
+}
+
 function toFriendlyError(message: string): string {
   return `We couldn't load your workspace. ${message}`;
 }
@@ -82,17 +94,17 @@ export function useProductivityData(userId: string | null) {
     await ensureWelcomeTask();
     let [tasksResult, habitsResult, goalsResult, completionsResult, skipsResult, profileResult] = await Promise.all([
       supabase.from('tasks').select('id, title, category, priority, due_label, completed').order('created_at', { ascending: true }),
-      supabase.from('habits').select('id, name, icon, color, frequency, reminder_time').order('created_at', { ascending: true }),
+      supabase.from('habits').select('id, name, icon, color, frequency, reminder_time, created_at').order('created_at', { ascending: true }),
       supabase.from('goals').select('id, title, notes, target, progress').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
       supabase.from('habit_skips').select('habit_id, skipped_on'),
       supabase.auth.getSession().then(({ data }) => data.session?.user ?? null),
     ]);
     if (habitsResult.error?.message.includes('reminder_time')) {
-      habitsResult = await supabase.from('habits').select('id, name, icon, color, frequency').order('created_at', { ascending: true });
+      habitsResult = await supabase.from('habits').select('id, name, icon, color, frequency, created_at').order('created_at', { ascending: true }) as typeof habitsResult;
     }
     if (goalsResult.error?.message.match(/notes|target|progress/)) {
-      goalsResult = await supabase.from('goals').select('id, title').order('created_at', { ascending: true });
+      goalsResult = await supabase.from('goals').select('id, title').order('created_at', { ascending: true }) as typeof goalsResult;
     }
     const localSkips = readSkipMap(userId);
     let skipMap = localSkips;
@@ -131,6 +143,7 @@ export function useProductivityData(userId: string | null) {
         return {
           ...habit,
           reminder_time: habit.reminder_time ?? null,
+          created_at: habit.created_at ?? new Date().toISOString(),
           completed: isWeeklyHabit(habit.frequency)
             ? weekContains(history)
             : history.includes(today),
@@ -198,7 +211,7 @@ export function useProductivityData(userId: string | null) {
     let { data, error } = await supabase.from('goals').insert(payload).select('id, title, notes, target, progress').maybeSingle();
     if (error) {
       const fallback = await supabase.from('goals').insert({ title }).select('id, title').maybeSingle();
-      data = fallback.data;
+      data = fallback.data as typeof data;
       error = fallback.error;
     }
     if (error || !data) throw new Error('Goal could not be created.');
@@ -206,17 +219,17 @@ export function useProductivityData(userId: string | null) {
   }, []);
 
   const createHabit = useCallback(async (name: string) => {
-    const { data, error } = await supabase.from('habits').insert({ name, icon: '✦', color: 'mint', frequency: 'Daily' }).select('id, name, icon, color, frequency, reminder_time').maybeSingle();
+    const { data, error } = await supabase.from('habits').insert({ name, icon: '✦', color: 'mint', frequency: 'Daily' }).select('id, name, icon, color, frequency, reminder_time, created_at').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, reminder_time: habit.reminder_time ?? null, completed: false, streak: 0, history: [], skips: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, mapNewHabit(habit)] }));
   }, []);
 
   const createHabitWithDetails = useCallback(async (name: string, icon: string, color: string, frequency: string) => {
-    const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency, reminder_time').maybeSingle();
+    const { data, error } = await supabase.from('habits').insert({ name, icon, color, frequency }).select('id, name, icon, color, frequency, reminder_time, created_at').maybeSingle();
     if (error || !data) throw new Error('Habit could not be created.');
     const habit = data as HabitRow;
-    setState((current) => ({ ...current, habits: [...current.habits, { ...habit, reminder_time: habit.reminder_time ?? null, completed: false, streak: 0, history: [], skips: [] }] }));
+    setState((current) => ({ ...current, habits: [...current.habits, mapNewHabit(habit)] }));
   }, []);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>) => {
@@ -308,7 +321,22 @@ export function useProductivityData(userId: string | null) {
       const { error: habitsError } = await supabase.from('habits').insert(selectedHabits.map((h) => ({ name: h.name, icon: h.icon, color: h.color, frequency: h.frequency })));
       if (habitsError) throw new Error('Could not save your habits.');
     }
-    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile, habits: [...current.habits, ...selectedHabits.map((h) => ({ id: crypto.randomUUID(), name: h.name, icon: h.icon, color: h.color, frequency: h.frequency, completed: false, streak: 0, history: [], skips: [], reminder_time: null }))] }));
+    setState((current) => ({
+      ...current,
+      profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile,
+      habits: [
+        ...current.habits,
+        ...selectedHabits.map((h) => mapNewHabit({
+          id: crypto.randomUUID(),
+          name: h.name,
+          icon: h.icon,
+          color: h.color as Habit['color'],
+          frequency: h.frequency,
+          reminder_time: null,
+          created_at: new Date().toISOString(),
+        })),
+      ],
+    }));
   }, [userId]);
 
   const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
@@ -320,7 +348,7 @@ export function useProductivityData(userId: string | null) {
 
   const markPreviousPeriod = useCallback(async (id: string) => {
     const habit = stateRef.current.habits.find((item) => item.id === id);
-    if (!habit || !userId) return;
+    if (!habit || !userId || !canCatchUpPreviousPeriod(habit)) return;
     const catchUp = catchUpFor(habit.frequency);
     const { error } = await supabase.from('habit_completions').upsert({ habit_id: id, completed_on: catchUp.completeOn }, { onConflict: 'user_id,habit_id,completed_on' });
     if (error) { setState((current) => ({ ...current, error: 'That day could not be updated. Please try again.' })); return; }
@@ -344,7 +372,7 @@ export function useProductivityData(userId: string | null) {
 
   const skipPreviousPeriod = useCallback(async (id: string) => {
     const habit = stateRef.current.habits.find((item) => item.id === id);
-    if (!habit || !userId) return;
+    if (!habit || !userId || !canCatchUpPreviousPeriod(habit)) return;
     const catchUp = catchUpFor(habit.frequency);
     const { error } = await supabase.from('habit_skips').upsert({ habit_id: id, skipped_on: catchUp.skipKey }, { onConflict: 'user_id,habit_id,skipped_on' });
     const skips = Array.from(new Set([...habit.skips, catchUp.skipKey]));

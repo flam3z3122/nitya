@@ -107,6 +107,18 @@ export function previousPeriodSkipped(skips: string[], frequency: string): boole
   return skips.includes(catchUpFor(frequency).skipKey);
 }
 
+export function canCatchUpPreviousPeriod(
+  habit: Pick<Habit, 'frequency' | 'created_at'>,
+  now: Date = new Date(),
+): boolean {
+  if (!habit.created_at) return true;
+  const created = localDateKey(new Date(habit.created_at));
+  if (isWeeklyHabit(habit.frequency)) {
+    return created < localDateKey(startOfWeek(now));
+  }
+  return created < localDateKey(now);
+}
+
 function weeklyStreakFromHistory(dates: string[], skips: string[]): number {
   const set = new Set(dates);
   const skipSet = new Set(skips);

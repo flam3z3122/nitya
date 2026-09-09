@@ -103,8 +103,10 @@ function App() {
             : auth.signUp
         }
         onResetPassword={auth.resetPassword}
-        loading={auth.loading}
+        onClearFeedback={auth.clearFeedback}
+        loading={auth.busy}
         error={auth.error}
+        notice={auth.notice}
       />
     );
   }

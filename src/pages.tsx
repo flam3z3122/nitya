@@ -38,28 +38,6 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
       <div className="today-layout">
         <div className="today-main">
           <ProgressCard completed={completed} total={tasks.length + habits.length} />
-          <section className="keep-going-card">
-            <div className="keep-going-head">
-              <div className="mini-stat-icon"><Flame size={18} /></div>
-              <div>
-                <p className="eyebrow">KEEP IT GOING</p>
-                <h2>{bestStreak} {streakUnit}</h2>
-                <span>{topHabit && bestStreak > 0 ? topHabit.name : 'Check in today to start a streak'}</span>
-              </div>
-              <button className="text-button" onClick={() => onNavigate('progress')}>Progress <ArrowRight size={15} /></button>
-            </div>
-            <div className="keep-week">
-              {currentWeekDays().map((day) => {
-                const done = completedHabitsOn(habits, day.key).length > 0;
-                return (
-                  <div key={day.key} className={`keep-week-day${done ? ' is-done' : ''}${day.key === today ? ' is-today' : ''}`}>
-                    <span>{day.label}</span>
-                    <i>{done ? <Check size={12} strokeWidth={3} /> : null}</i>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
           {reminders.length > 0 && (
             <section className="content-section reminder-section">
               <div className="section-heading">
@@ -81,16 +59,6 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                     <Clock3 size={15} />
                   </button>
                 ))}
-              </div>
-            </section>
-          )}
-          {goals.length > 0 && (
-            <section className="content-section">
-              <div className="section-heading">
-                <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
-              </div>
-              <div className="goal-list">
-                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} onCheckIn={onCheckInGoal} />)}
               </div>
             </section>
           )}
@@ -132,6 +100,38 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                   {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('tasks')}>+{remainingTasks} more</button>}
                 </>
               )}
+            </div>
+          </section>
+          {goals.length > 0 && (
+            <section className="content-section">
+              <div className="section-heading">
+                <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
+              </div>
+              <div className="goal-list">
+                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} onCheckIn={onCheckInGoal} />)}
+              </div>
+            </section>
+          )}
+          <section className="keep-going-card">
+            <div className="keep-going-head">
+              <div className="mini-stat-icon"><Flame size={18} /></div>
+              <div>
+                <p className="eyebrow">KEEP IT GOING</p>
+                <h2>{bestStreak} {streakUnit}</h2>
+                <span>{topHabit && bestStreak > 0 ? topHabit.name : 'Check in today to start a streak'}</span>
+              </div>
+              <button className="text-button" onClick={() => onNavigate('progress')}>Progress <ArrowRight size={15} /></button>
+            </div>
+            <div className="keep-week">
+              {currentWeekDays().map((day) => {
+                const done = completedHabitsOn(habits, day.key).length > 0;
+                return (
+                  <div key={day.key} className={`keep-week-day${done ? ' is-done' : ''}${day.key === today ? ' is-today' : ''}`}>
+                    <span>{day.label}</span>
+                    <i>{done ? <Check size={12} strokeWidth={3} /> : null}</i>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
@@ -450,8 +450,41 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
   }
 
   return <div className="page-content"><PageHeader screen="profile" />
-    {editingName ? <section className="profile-card editing"><div className="avatar avatar-large">{(nameValue || 'A').split(' ').map((p) => p[0]).join('').slice(0, 2)}</div><div className="profile-edit-form"><input className="profile-name-input" value={nameValue} onChange={(e) => setNameValue(e.target.value)} placeholder="Your name" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); }} /><div className="profile-edit-actions"><button className="button button-dark" disabled={nameSaving || !nameValue.trim()} onClick={() => void saveName()}>{nameSaving ? 'Saving\u2026' : 'Save'}</button><button className="icon-button" onClick={() => { setEditingName(false); setNameValue(profile?.name ?? ''); }} aria-label="Cancel"><X size={17} /></button></div></div></section>
-    : <section className="profile-card"><div className="avatar avatar-large">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><div><h2>{name}</h2><p>{email}</p><span className="member-pill"><Sparkles size={12} /> Personal workspace</span></div><button className="icon-button profile-edit-btn" onClick={() => { setNameValue(profile?.name ?? ''); setEditingName(true); }} aria-label="Edit name"><Pencil size={16} /></button></section>}
+    <section className="profile-card">
+      <div className="avatar avatar-large">{(editingName ? nameValue || 'A' : name).split(' ').map((part) => part[0]).join('').slice(0, 2)}</div>
+      <div className="profile-card-copy">
+        {editingName ? (
+          <input
+            className="profile-name-input"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            placeholder="Your name"
+            autoFocus
+            aria-label="Your name"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void saveName();
+              if (e.key === 'Escape') { setEditingName(false); setNameValue(profile?.name ?? ''); }
+            }}
+          />
+        ) : (
+          <h2>{name}</h2>
+        )}
+        <p>{email}</p>
+        <span className="member-pill"><Sparkles size={12} /> Personal workspace</span>
+      </div>
+      {editingName ? (
+        <div className="profile-edit-actions">
+          <button type="button" className="icon-button" disabled={nameSaving || !nameValue.trim()} onClick={() => void saveName()} aria-label="Save name">
+            {nameSaving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
+          </button>
+          <button type="button" className="icon-button" onClick={() => { setEditingName(false); setNameValue(profile?.name ?? ''); }} aria-label="Cancel">
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <button className="icon-button profile-edit-btn" onClick={() => { setNameValue(profile?.name ?? ''); setEditingName(true); }} aria-label="Edit name"><Pencil size={16} /></button>
+      )}
+    </section>
 
     <section className="settings-section"><p className="eyebrow">EMAIL</p><div className="settings-card">
       <div className="setting-row email-row">
