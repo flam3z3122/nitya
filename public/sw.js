@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'daymark-v2';
+const CACHE_VERSION = 'daymark-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const OFFLINE_URL = '/offline.html';
@@ -8,11 +8,14 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/offline.html',
+  '/icons/icon-48.png',
+  '/icons/icon-96.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/maskable-192.png',
   '/icons/maskable-512.png',
   '/icons/apple-touch-icon.png',
+  '/icons/favicon-32.png',
   '/icon.svg',
 ];
 

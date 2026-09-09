@@ -89,7 +89,8 @@
 .dark .calendar-day.has-activity:not(.selected) i { background: #d98c57; }
 .dark .data-warning { background: #2b1b18; color: #ffd6c9; border-color: rgba(255,255,255,0.04); }
 .install-banner { position: fixed; z-index: 40; left: 16px; right: 16px; bottom: calc(90px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 11px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 11px 12px; box-shadow: 0 12px 28px #1c282818; animation: slide-up .25s ease; }
-.install-banner-mark { flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #fff; background: #4f947b; }
+.install-banner-mark { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; overflow: hidden; }
+.install-banner-mark img { display: block; width: 32px; height: 32px; }
 .install-banner-copy { min-width: 0; flex: 1; }
 .install-banner-copy strong { display: block; font: 700 13px 'Manrope', sans-serif; letter-spacing: -.2px; color: var(--ink); }
 .install-banner-copy span { display: block; margin-top: 2px; color: #8a9792; font-size: 11px; line-height: 1.35; }
