@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
 import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
@@ -8,6 +8,7 @@ import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
 import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
+import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
 type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; onCheckInGoal: (id: string) => void; onMarkPrevious: (id: string) => void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void; userName?: string };
@@ -381,11 +382,12 @@ type ProfilePageProps = {
   onSignOut: () => void;
   onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled'>>) => Promise<void>;
   onResendVerification: () => Promise<{ error: string | null }>;
+  onDeleteAccount: () => Promise<void>;
 };
 
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
-export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification }: ProfilePageProps) {
+export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification, onDeleteAccount }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
@@ -393,6 +395,10 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const name = profile?.name ?? 'Your name';
   const email = profile?.email ?? authEmail ?? '';
   const themes: Array<'Light' | 'Dark'> = ['Light', 'Dark'];
@@ -428,6 +434,21 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     else showToast('Verification email sent. Check your inbox.', 'success');
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await onDeleteAccount();
+    } catch (error) {
+      setDeleting(false);
+      showToast(error instanceof Error ? error.message : 'Could not delete your account.', 'error');
+    }
+  };
+
+  if (privacyOpen) {
+    return <PrivacyPolicy onBack={() => setPrivacyOpen(false)} />;
+  }
+
   return <div className="page-content"><PageHeader screen="profile" />
     {editingName ? <section className="profile-card editing"><div className="avatar avatar-large">{(nameValue || 'A').split(' ').map((p) => p[0]).join('').slice(0, 2)}</div><div className="profile-edit-form"><input className="profile-name-input" value={nameValue} onChange={(e) => setNameValue(e.target.value)} placeholder="Your name" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') void saveName(); }} /><div className="profile-edit-actions"><button className="button button-dark" disabled={nameSaving || !nameValue.trim()} onClick={() => void saveName()}>{nameSaving ? 'Saving\u2026' : 'Save'}</button><button className="icon-button" onClick={() => { setEditingName(false); setNameValue(profile?.name ?? ''); }} aria-label="Cancel"><X size={17} /></button></div></div></section>
     : <section className="profile-card"><div className="avatar avatar-large">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><div><h2>{name}</h2><p>{email}</p><span className="member-pill"><Sparkles size={12} /> Personal workspace</span></div><button className="icon-button profile-edit-btn" onClick={() => { setNameValue(profile?.name ?? ''); setEditingName(true); }} aria-label="Edit name"><Pencil size={16} /></button></section>}
@@ -459,7 +480,56 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
       <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">Reminders</span><span className={`toggle ${profile?.notifications_enabled ? 'on' : 'off'}`}><i /></span></button>
     </div></section>
 
+    <section className="settings-section"><p className="eyebrow">LEGAL</p><div className="settings-card">
+      <button type="button" className="setting-row" onClick={() => setPrivacyOpen(true)}>
+        <span className="setting-icon"><FileText size={18} /></span>
+        <span className="setting-title">Privacy policy</span>
+        <ChevronRight size={16} className="setting-arrow" />
+      </button>
+    </div></section>
+
+    <section className="danger-section"><p className="eyebrow danger-eyebrow">ACCOUNT</p>
+      <div className="danger-card">
+        <div className="danger-info">
+          <span className="danger-icon"><Trash2 size={18} /></span>
+          <div>
+            <strong>Delete account</strong>
+            <p>Permanently removes your sign-in and all habits, tasks, and goals.</p>
+          </div>
+        </div>
+        <button type="button" className="danger-btn" onClick={() => { setDeleteOpen(true); setDeleteConfirm(''); }}>Delete</button>
+      </div>
+    </section>
+
     <button className="logout-button" onClick={onSignOut}><LogOut size={17} /> Log out</button>
+
+    {deleteOpen && (
+      <div className="modal-overlay" onClick={() => !deleting && setDeleteOpen(false)}>
+        <div className="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" onClick={(event) => event.stopPropagation()}>
+          <div className="delete-modal-header">
+            <span className="delete-modal-icon"><Trash2 size={22} /></span>
+            <h3 id="delete-account-title">Delete your account?</h3>
+          </div>
+          <p className="delete-modal-body">This cannot be undone. Your email, habits, tasks, goals, and reminders will be removed.</p>
+          <div className="delete-confirm-field">
+            <label htmlFor="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
+            <input
+              id="delete-confirm"
+              value={deleteConfirm}
+              onChange={(event) => setDeleteConfirm(event.target.value)}
+              autoComplete="off"
+              autoFocus
+            />
+          </div>
+          <div className="delete-modal-actions">
+            <button type="button" className="button button-light" disabled={deleting} onClick={() => setDeleteOpen(false)}>Cancel</button>
+            <button type="button" className="danger-btn confirm" disabled={deleting || deleteConfirm !== 'DELETE'} onClick={() => void handleDeleteAccount()}>
+              {deleting ? 'Deleting…' : 'Delete account'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {toasts.length > 0 && (
       <div className="toast-container">

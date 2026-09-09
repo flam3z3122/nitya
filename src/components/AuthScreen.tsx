@@ -67,6 +67,9 @@ export function AuthScreen({ mode, onModeChange, onSubmit, onResetPassword, load
                 {isSignUp ? 'Sign in' : 'Create one'}
               </button>
             </p>
+            <p className="auth-legal">
+              By continuing you agree to our <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a>.
+            </p>
           </>
         )}
 

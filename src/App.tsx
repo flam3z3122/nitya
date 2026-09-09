@@ -191,6 +191,10 @@ function App() {
         onSignOut={() => void auth.signOut()}
         onUpdateProfile={data.updateProfile}
         onResendVerification={auth.resendVerification}
+        onDeleteAccount={async () => {
+          await data.deleteAccount();
+          await auth.signOut();
+        }}
       />
     );
 

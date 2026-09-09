@@ -393,7 +393,7 @@ export function useProductivityData(userId: string | null) {
       body: JSON.stringify({}),
     });
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
+      const body = await response.json().catch(() => ({})) as { error?: string };
       throw new Error(body.error ?? 'Could not delete account. Please try again or contact support.');
     }
   }, []);

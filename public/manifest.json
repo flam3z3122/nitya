@@ -2,14 +2,24 @@
   "name": "daymark — small steps, lasting change",
   "short_name": "daymark",
   "description": "Build better habits, track tasks, and reach your goals — one small step at a time.",
+  "id": "https://todayshabit.netlify.app/",
   "start_url": "/",
   "scope": "/",
+  "lang": "en",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#f5f9f6",
   "theme_color": "#4f947b",
   "categories": ["productivity", "lifestyle", "health"],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.daymark.app",
+      "url": "https://play.google.com/store/apps/details?id=com.daymark.app"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
