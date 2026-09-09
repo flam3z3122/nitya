@@ -25,12 +25,40 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
   const visibleTasks = tasks.slice(0, 3);
   const remainingTasks = Math.max(0, tasks.length - visibleTasks.length);
+  const topHabit = habits.reduce<Habit | null>((best, habit) => (!best || habit.streak > best.streak ? habit : best), null);
+  const bestStreak = topHabit?.streak ?? 0;
+  const streakUnit = topHabit && isWeeklyHabit(topHabit.frequency)
+    ? (bestStreak === 1 ? 'week' : 'weeks')
+    : (bestStreak === 1 ? 'day' : 'days');
+  const today = todayKey();
   return (
     <div className="page-content">
       <PageHeader screen="today" userName={userName} />
       <div className="today-layout">
         <div className="today-main">
           <ProgressCard completed={completed} total={tasks.length + habits.length} />
+          <section className="keep-going-card">
+            <div className="keep-going-head">
+              <div className="mini-stat-icon"><Flame size={18} /></div>
+              <div>
+                <p className="eyebrow">KEEP IT GOING</p>
+                <h2>{bestStreak} {streakUnit}</h2>
+                <span>{topHabit && bestStreak > 0 ? topHabit.name : 'Check in today to start a streak'}</span>
+              </div>
+              <button className="text-button" onClick={() => onNavigate('progress')}>Progress <ArrowRight size={15} /></button>
+            </div>
+            <div className="keep-week">
+              {currentWeekDays().map((day) => {
+                const done = completedHabitsOn(habits, day.key).length > 0;
+                return (
+                  <div key={day.key} className={`keep-week-day${done ? ' is-done' : ''}${day.key === today ? ' is-today' : ''}`}>
+                    <span>{day.label}</span>
+                    <i>{done ? <Check size={12} strokeWidth={3} /> : null}</i>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
           {reminders.length > 0 && (
             <section className="content-section reminder-section">
               <div className="section-heading">
@@ -67,22 +95,6 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
           )}
           <section className="content-section">
             <div className="section-heading">
-              <div><p className="eyebrow">FOCUS FOR TODAY</p><h2>Today&apos;s tasks</h2></div>
-              <button className="text-button" onClick={() => onNavigate('tasks')}>View all <ArrowRight size={15} /></button>
-            </div>
-            <div className="task-list">
-              {tasks.length === 0 ? (
-                <EmptyState title="No tasks yet" message="Add something you want to get done today." actionLabel="Add a task" onAction={() => onQuickAdd('task')} />
-              ) : (
-                <>
-                  {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
-                  {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('tasks')}>+{remainingTasks} more</button>}
-                </>
-              )}
-            </div>
-          </section>
-          <section className="content-section">
-            <div className="section-heading">
               <div><p className="eyebrow">BUILDING CONSISTENCY</p><h2>Today&apos;s habits</h2></div>
               <button className="text-button" onClick={() => onNavigate('habits')}>Manage <ArrowRight size={15} /></button>
             </div>
@@ -105,22 +117,24 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               )}
             </div>
           </section>
+          <section className="content-section">
+            <div className="section-heading">
+              <div><p className="eyebrow">FOCUS FOR TODAY</p><h2>Today&apos;s tasks</h2></div>
+              <button className="text-button" onClick={() => onNavigate('tasks')}>View all <ArrowRight size={15} /></button>
+            </div>
+            <div className="task-list">
+              {tasks.length === 0 ? (
+                <EmptyState title="No tasks yet" message="Add something you want to get done today." actionLabel="Add a task" onAction={() => onQuickAdd('task')} />
+              ) : (
+                <>
+                  {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
+                  {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('tasks')}>+{remainingTasks} more</button>}
+                </>
+              )}
+            </div>
+          </section>
         </div>
         <aside className="today-aside">
-          <div className="streak-card">
-            <div className="streak-card-top">
-              <div className="streak-flame"><Flame size={21} fill="currentColor" /></div>
-              <span>KEEP IT GOING</span>
-            </div>
-            <strong>{Math.max(0, ...habits.map((habit) => habit.streak))}</strong>
-            <p>day current streak</p>
-            <div className="streak-days">
-              {currentWeekDays().map((day) => {
-                const done = completedHabitsOn(habits, day.key).length > 0;
-                return <div key={day.key} className={done ? 'done' : ''}><span>{day.label}</span><i>{done ? '\u2713' : ''}</i></div>;
-              })}
-            </div>
-          </div>
           <div className="quote-card">
             <Sparkles size={19} />
             <p>&ldquo;Success is the sum of small efforts, repeated day in and day out.&rdquo;</p>
