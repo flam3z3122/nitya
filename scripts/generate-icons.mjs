@@ -7,11 +7,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'public', 'icons');
 mkdirSync(outDir, { recursive: true });
 
-/** Filled leaf in a 24×24 box — stays readable at 16–48px (outline Lucide does not). */
+/** Same outline leaf as Lucide `Leaf` in the Habits nav and onboarding. */
 const leaf = `
-  <g>
-    <path fill="#ffffff" d="M12.1 1.8c4.9 1.7 8.7 6.6 8.7 11.8 0 5.4-3.9 9.2-8.8 9.2S3.2 19 3.2 13.6C3.2 8.4 7.1 3.5 12.1 1.8Z"/>
-    <path fill="none" stroke="#2c6a55" stroke-width="2.1" stroke-linecap="round" d="M11.2 20.6C9.8 14.6 12.4 8.6 17.6 4.8"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 12 13"/>
   </g>
 `;
 
@@ -32,17 +32,17 @@ function writePng(name, svg, size) {
   writeFileSync(join(outDir, name), png);
 }
 
-writePng('favicon-16.png', iconSvg(16, true, 0.06), 16);
-writePng('favicon-32.png', iconSvg(32, true, 0.06), 32);
-writePng('icon-48.png', iconSvg(48, true, 0.08), 48);
-writePng('icon-96.png', iconSvg(96, true, 0.1), 96);
-writePng('icon-192.png', iconSvg(192, true, 0.1), 192);
-writePng('icon-512.png', iconSvg(512, true, 0.1), 512);
-writePng('apple-touch-icon.png', iconSvg(180, true, 0.1), 180);
-writePng('maskable-192.png', iconSvg(192, false, 0.12), 192);
-writePng('maskable-512.png', iconSvg(512, false, 0.12), 512);
+writePng('favicon-16.png', iconSvg(16, true, 0.14), 16);
+writePng('favicon-32.png', iconSvg(32, true, 0.16), 32);
+writePng('icon-48.png', iconSvg(48, true, 0.18), 48);
+writePng('icon-96.png', iconSvg(96, true, 0.2), 96);
+writePng('icon-192.png', iconSvg(192, true, 0.2), 192);
+writePng('icon-512.png', iconSvg(512, true, 0.2), 512);
+writePng('apple-touch-icon.png', iconSvg(180, true, 0.2), 180);
+writePng('maskable-192.png', iconSvg(192, false, 0.22), 192);
+writePng('maskable-512.png', iconSvg(512, false, 0.22), 512);
 
-writeFileSync(join(root, 'public', 'icon.svg'), iconSvg(512, true, 0.1));
-writeFileSync(join(root, 'public', 'maskable.svg'), iconSvg(512, false, 0.12));
+writeFileSync(join(root, 'public', 'icon.svg'), iconSvg(512, true, 0.2));
+writeFileSync(join(root, 'public', 'maskable.svg'), iconSvg(512, false, 0.22));
 
-console.log('Wrote filled leaf icons to public/icons');
+console.log('Wrote outline leaf icons to public/icons');
