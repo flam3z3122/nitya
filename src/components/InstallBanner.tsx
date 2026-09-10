@@ -56,7 +56,7 @@ export function InstallBanner() {
   return (
     <div className="install-banner" role="dialog" aria-label="Install daymark">
       <span className="install-banner-mark" aria-hidden>
-        <img src="/icons/icon-192.png?v=4" alt="" width={32} height={32} />
+        <img src="/icons/icon-192.png?v=6" alt="" width={32} height={32} />
       </span>
       <div className="install-banner-copy">
         <strong>Install daymark</strong>
