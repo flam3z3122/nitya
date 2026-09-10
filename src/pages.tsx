@@ -365,7 +365,7 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
               <div className="detail-item" key={habit.id}>
                 <span className={`detail-item-icon green habit-icon habit-${habit.color}`}>{habit.icon}</span>
                 <div><strong>{habit.name}</strong><small>{habit.frequency}</small></div>
-                <span className="detail-check">&check;</span>
+                <span className="detail-check"><Check size={16} /></span>
               </div>
             ))}
           </div>
@@ -509,37 +509,32 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     <section className="settings-section"><p className="eyebrow">EMAIL</p><div className="settings-card">
       <div className="setting-row email-row">
         <span className="setting-icon"><Mail size={18} /></span>
-        <div className="email-row-content">
-          <span className="setting-title">{email}</span>
-          <span className={`verify-badge ${profile?.email_verified ? 'verified' : 'unverified'}`}>
-            {profile?.email_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-            {profile?.email_verified ? 'Verified' : 'Unverified'}
-          </span>
-        </div>
+        <span className="setting-title">{email}</span>
+        <span className={`verify-badge ${profile?.email_verified ? 'verified' : 'unverified'}`}>
+          {profile?.email_verified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+          {profile?.email_verified ? 'Verified' : 'Unverified'}
+        </span>
       </div>
       {!profile?.email_verified && (
-        <div className="resend-section">
-          <p className="verify-copy">Optional. Confirm this address whenever you like — you can keep using daymark either way.</p>
-          <button className="resend-btn" disabled={sendingVerify} onClick={() => void handleSendVerification()}>
-            {sendingVerify ? <Loader2 size={15} className="spin" /> : <Mail size={15} />}
-            {sendingVerify ? 'Sending\u2026' : codeSent ? 'Resend email' : 'Send verification email'}
+        <button type="button" className="setting-row verify-action-row" disabled={sendingVerify} onClick={() => void handleSendVerification()}>
+          <span className="setting-title">{sendingVerify ? 'Sending\u2026' : codeSent ? 'Resend verification email' : 'Send verification email'}</span>
+          {sendingVerify ? <Loader2 size={15} className="spin setting-arrow" /> : <Mail size={15} className="setting-arrow" />}
+        </button>
+      )}
+      {!profile?.email_verified && codeSent && (
+        <div className="verify-code-row">
+          <input
+            className="verify-code-input"
+            value={verifyCode}
+            onChange={(event) => setVerifyCode(event.target.value)}
+            placeholder="Code from email"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            onKeyDown={(event) => { if (event.key === 'Enter') void handleConfirmCode(); }}
+          />
+          <button type="button" className="button button-dark" disabled={confirming || !verifyCode.trim()} onClick={() => void handleConfirmCode()}>
+            {confirming ? 'Checking\u2026' : 'Confirm'}
           </button>
-          {codeSent && (
-            <div className="verify-code-row">
-              <input
-                className="verify-code-input"
-                value={verifyCode}
-                onChange={(event) => setVerifyCode(event.target.value)}
-                placeholder="Code from email"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                onKeyDown={(event) => { if (event.key === 'Enter') void handleConfirmCode(); }}
-              />
-              <button type="button" className="button button-dark" disabled={confirming || !verifyCode.trim()} onClick={() => void handleConfirmCode()}>
-                {confirming ? 'Checking\u2026' : 'Confirm'}
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div></section>
@@ -558,16 +553,13 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
       </button>
     </div></section>
 
-    <section className="danger-section"><p className="eyebrow danger-eyebrow">ACCOUNT</p>
-      <div className="danger-card">
-        <div className="danger-info">
-          <span className="danger-icon"><Trash2 size={18} /></span>
-          <div>
-            <strong>Delete account</strong>
-            <p>Permanently removes your sign-in and all habits, tasks, and goals.</p>
-          </div>
+    <section className="settings-section"><p className="eyebrow danger-eyebrow">ACCOUNT</p>
+      <div className="settings-card">
+        <div className="setting-row danger-row">
+          <span className="setting-icon"><Trash2 size={18} /></span>
+          <span className="setting-title">Delete account</span>
+          <button type="button" className="danger-btn" onClick={() => { setDeleteOpen(true); setDeleteConfirm(''); }}>Delete</button>
         </div>
-        <button type="button" className="danger-btn" onClick={() => { setDeleteOpen(true); setDeleteConfirm(''); }}>Delete</button>
       </div>
     </section>
 
