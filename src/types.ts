@@ -49,4 +49,6 @@ export type DataState = {
   profile: ProfileSettings | null;
   loading: boolean;
   error: string | null;
+  offline: boolean;
+  pendingSync: number;
 };

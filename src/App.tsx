@@ -16,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProductivityData } from '@/hooks/useProductivityData';
 import { useHashRoute } from '@/hooks/useHashRoute';
 import { useReminders } from '@/hooks/useReminders';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import type { Goal, Habit, Task } from '@/types';
 
 function App() {
@@ -26,6 +28,7 @@ function App() {
 
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
+  const online = useOnlineStatus();
   useReminders(data.habits, data.profile?.notifications_enabled !== false);
   const verifyingLink = useRef(false);
 
@@ -147,15 +150,20 @@ function App() {
     );
   }
 
+  const showWorkspaceSpinner =
+    data.loading && !data.profile && data.tasks.length === 0 && data.habits.length === 0 && data.goals.length === 0;
+
   const page =
-    data.loading ? (
+    showWorkspaceSpinner ? (
       <div className="loading-screen">
         <div className="loading-spinner" />
         <p>Loading your workspace…</p>
       </div>
     ) : data.error &&
+      !data.profile &&
       !data.tasks.length &&
-      !data.habits.length ? (
+      !data.habits.length &&
+      !data.goals.length ? (
       <div className="error-screen">
         <h2>We couldn't load your workspace</h2>
         <p>{data.error}</p>
@@ -235,7 +243,8 @@ function App() {
       />
 
       <main className="main-area">
-        {data.error && data.tasks.length > 0 && (
+        <OfflineBanner offline={data.offline} pendingSync={data.pendingSync} online={online} />
+        {data.error && (data.tasks.length > 0 || data.habits.length > 0 || Boolean(data.profile)) && !data.offline && (
           <div className="data-warning">
             {data.error}
           </div>

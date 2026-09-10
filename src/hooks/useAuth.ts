@@ -24,6 +24,8 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
       setState({ user: extractUser(session?.user ?? null), loading: false, busy: false, error: null, notice: null });
+    }).catch(() => {
+      setState({ user: null, loading: false, busy: false, error: null, notice: null });
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -93,7 +95,11 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      await supabase.auth.signOut({ scope: 'local' });
+    }
     setState({ user: null, loading: false, busy: false, error: null, notice: null });
   }, []);
 

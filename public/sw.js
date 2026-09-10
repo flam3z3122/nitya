@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'daymark-v4';
+const CACHE_VERSION = 'daymark-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const OFFLINE_URL = '/offline.html';
@@ -21,7 +21,9 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE).then((cache) =>
+      Promise.all(STATIC_ASSETS.map((url) => cache.add(url).catch(() => undefined)))
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -33,12 +35,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function cachedAppShell() {
+  return caches.match('/index.html', { ignoreSearch: true }).then((cached) =>
+    cached || caches.match('/', { ignoreSearch: true }).then((root) =>
+      root || caches.match(OFFLINE_URL)
+    )
+  );
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   if (request.method !== 'GET') return;
-
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
@@ -46,11 +55,14 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
+          caches.open(RUNTIME_CACHE).then((cache) => {
+            void cache.put(request, copy);
+            void cache.put('/index.html', response.clone());
+          });
           return response;
         })
         .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL))
+          caches.match(request, { ignoreSearch: true }).then((cached) => cached || cachedAppShell())
         )
     );
     return;
@@ -60,12 +72,12 @@ self.addEventListener('fetch', (event) => {
 
   if (isStaticAsset) {
     event.respondWith(
-      caches.match(request).then((cached) =>
+      caches.match(request, { ignoreSearch: true }).then((cached) =>
         cached || fetch(request).then((response) => {
           const copy = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
           return response;
-        }).catch(() => cached)
+        }).catch(() => cached || caches.match(request, { ignoreSearch: true }))
       )
     );
     return;
@@ -78,7 +90,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
         return response;
       })
-      .catch(() => caches.match(request))
+      .catch(() => caches.match(request, { ignoreSearch: true }))
   );
 });
 
