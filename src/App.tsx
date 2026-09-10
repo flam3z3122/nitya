@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { QuickAdd } from '@/components/QuickAdd';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -27,6 +27,23 @@ function App() {
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
   useReminders(data.habits, data.profile?.notifications_enabled !== false);
+  const verifyingLink = useRef(false);
+
+  useEffect(() => {
+    if (!auth.user || data.profile?.email_verified || verifyingLink.current) return;
+    const search = new URLSearchParams(window.location.search);
+    const queryFromHash = window.location.hash.includes('?')
+      ? new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?')))
+      : new URLSearchParams();
+    const token_hash = search.get('token_hash') ?? queryFromHash.get('token_hash') ?? undefined;
+    const token = search.get('token') ?? queryFromHash.get('token') ?? undefined;
+    const type = search.get('type') ?? queryFromHash.get('type') ?? undefined;
+    if (!token_hash && !token) return;
+    verifyingLink.current = true;
+    void data.confirmEmail({ token, token_hash, type }).finally(() => {
+      verifyingLink.current = false;
+    });
+  }, [auth.user, data.confirmEmail, data.profile?.email_verified]);
 
   useEffect(() => {
     const mode = data.profile?.theme ?? 'Light';
@@ -37,6 +54,15 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [data.profile?.theme]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.querySelectorAll('.main-area, .page-content').forEach((node) => {
+      (node as HTMLElement).scrollTop = 0;
+    });
+  }, [screen]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editType, setEditType] = useState<EditType | null>(null);
@@ -189,10 +215,10 @@ function App() {
       <ProfilePage
         profile={data.profile}
         authEmail={auth.user?.email ?? ''}
-        emailVerified={auth.user?.emailVerified ?? false}
         onSignOut={() => void auth.signOut()}
         onUpdateProfile={data.updateProfile}
-        onResendVerification={auth.resendVerification}
+        onSendVerification={data.sendVerificationEmail}
+        onConfirmEmail={data.confirmEmail}
         onDeleteAccount={async () => {
           await data.deleteAccount();
           await auth.signOut();
