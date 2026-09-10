@@ -34,7 +34,7 @@ export const privacySections: { title: string; body: string[] }[] = [
     body: [
       'You can edit your name, theme, and reminder setting in Profile, and optionally verify your email.',
       'You can delete habits, tasks, and goals from the app.',
-      'You can delete your entire account in Profile. That removes your sign-in and the workspace data tied to it.',
+      'You can delete your entire account in Profile. That removes your sign-in and the workspace data tied to it. On the web, follow the steps at /delete-account.html.',
     ],
   },
   {
