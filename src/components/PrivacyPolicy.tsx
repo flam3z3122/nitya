@@ -1,3 +1,4 @@
+import { useEffect, type ReactElement } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { privacySections, privacyUpdated } from '@/content/privacy';
 
@@ -5,7 +6,11 @@ type PrivacyPolicyProps = {
   onBack: () => void;
 };
 
-export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
+export function PrivacyPolicy({ onBack }: PrivacyPolicyProps): ReactElement {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
   return (
     <div className="page-content privacy-page">
       <header className="page-header">

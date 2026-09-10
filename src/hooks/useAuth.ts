@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthMessage } from '@/lib/authErrors';
 
-export type AuthUser = { id: string; email: string; emailVerified: boolean };
+export type AuthUser = { id: string; email: string };
 
 type AuthState = {
   user: AuthUser | null;
@@ -12,10 +12,9 @@ type AuthState = {
   notice: string | null;
 };
 
-function extractUser(sessionUser: { id: string; email?: string | undefined; email_confirmed_at?: string | null; confirmed_at?: string | null } | null): AuthUser | null {
+function extractUser(sessionUser: { id: string; email?: string | undefined } | null): AuthUser | null {
   if (!sessionUser) return null;
-  const verified = Boolean(sessionUser.email_confirmed_at ?? sessionUser.confirmed_at);
-  return { id: sessionUser.id, email: sessionUser.email ?? '', emailVerified: verified };
+  return { id: sessionUser.id, email: sessionUser.email ?? '' };
 }
 
 export function useAuth() {
@@ -114,12 +113,5 @@ export function useAuth() {
     }
   }, []);
 
-  const resendVerification = useCallback(async () => {
-    if (!state.user?.email) return { error: 'No email on file.' };
-    const { error } = await supabase.auth.resend({ type: 'signup', email: state.user.email });
-    if (error) return { error: friendlyAuthMessage(error, 'signup') };
-    return { error: null };
-  }, [state.user?.email]);
-
-  return { ...state, signUp, signIn, signOut, resetPassword, resendVerification, clearFeedback };
+  return { ...state, signUp, signIn, signOut, resetPassword, clearFeedback };
 }

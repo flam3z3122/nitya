@@ -378,27 +378,30 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
 type ProfilePageProps = {
   profile: ProfileSettings | null;
   authEmail: string;
-  emailVerified: boolean;
   onSignOut: () => void;
   onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled'>>) => Promise<void>;
-  onResendVerification: () => Promise<{ error: string | null }>;
+  onSendVerification: () => Promise<{ error: string | null }>;
+  onConfirmEmail: (payload: { token?: string; token_hash?: string; type?: string }) => Promise<{ error: string | null }>;
   onDeleteAccount: () => Promise<void>;
 };
 
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
-export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUpdateProfile, onResendVerification, onDeleteAccount }: ProfilePageProps) {
+export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, onSendVerification, onConfirmEmail, onDeleteAccount }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
-  const [resending, setResending] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [sendingVerify, setSendingVerify] = useState(false);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
   const name = profile?.name ?? 'Your name';
   const email = profile?.email ?? authEmail ?? '';
   const themes: Array<'Light' | 'Dark'> = ['Light', 'Dark'];
@@ -426,12 +429,29 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
     setSavingKey(null);
   };
 
-  const handleResend = async () => {
-    setResending(true);
-    const result = await onResendVerification();
-    setResending(false);
+  const handleSendVerification = async () => {
+    setSendingVerify(true);
+    const result = await onSendVerification();
+    setSendingVerify(false);
     if (result.error) showToast(result.error, 'error');
-    else showToast('Verification email sent. Check your inbox.', 'success');
+    else {
+      setCodeSent(true);
+      showToast('Check your inbox for a verification email.', 'success');
+    }
+  };
+
+  const handleConfirmCode = async () => {
+    const token = verifyCode.trim();
+    if (!token) return;
+    setConfirming(true);
+    const result = await onConfirmEmail({ token });
+    setConfirming(false);
+    if (result.error) showToast(result.error, 'error');
+    else {
+      setVerifyCode('');
+      setCodeSent(false);
+      showToast('Your email is verified.', 'success');
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -491,18 +511,35 @@ export function ProfilePage({ profile, authEmail, emailVerified, onSignOut, onUp
         <span className="setting-icon"><Mail size={18} /></span>
         <div className="email-row-content">
           <span className="setting-title">{email}</span>
-          <span className={`verify-badge ${emailVerified ? 'verified' : 'unverified'}`}>
-            {emailVerified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-            {emailVerified ? 'Verified' : 'Unverified'}
+          <span className={`verify-badge ${profile?.email_verified ? 'verified' : 'unverified'}`}>
+            {profile?.email_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+            {profile?.email_verified ? 'Verified' : 'Unverified'}
           </span>
         </div>
       </div>
-      {!emailVerified && (
+      {!profile?.email_verified && (
         <div className="resend-section">
-          <button className="resend-btn" disabled={resending} onClick={() => void handleResend()}>
-            {resending ? <Loader2 size={15} className="spin" /> : <Mail size={15} />}
-            {resending ? 'Sending\u2026' : 'Resend verification email'}
+          <p className="verify-copy">Optional. Confirm this address whenever you like — you can keep using daymark either way.</p>
+          <button className="resend-btn" disabled={sendingVerify} onClick={() => void handleSendVerification()}>
+            {sendingVerify ? <Loader2 size={15} className="spin" /> : <Mail size={15} />}
+            {sendingVerify ? 'Sending\u2026' : codeSent ? 'Resend email' : 'Send verification email'}
           </button>
+          {codeSent && (
+            <div className="verify-code-row">
+              <input
+                className="verify-code-input"
+                value={verifyCode}
+                onChange={(event) => setVerifyCode(event.target.value)}
+                placeholder="Code from email"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                onKeyDown={(event) => { if (event.key === 'Enter') void handleConfirmCode(); }}
+              />
+              <button type="button" className="button button-dark" disabled={confirming || !verifyCode.trim()} onClick={() => void handleConfirmCode()}>
+                {confirming ? 'Checking\u2026' : 'Confirm'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div></section>
