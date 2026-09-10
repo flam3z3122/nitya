@@ -88,6 +88,10 @@
 .dark .calendar-day.selected { color: #07141a; background: var(--green); }
 .dark .calendar-day.has-activity:not(.selected) i { background: #d98c57; }
 .dark .data-warning { background: #2b1b18; color: #ffd6c9; border-color: rgba(255,255,255,0.04); }
+.offline-banner { margin: 0 0 12px; padding: 9px 14px; border-radius: 12px; background: #eef4f1; border: 1px solid #d7e4dc; color: #3d5c50; font-size: 12px; font-weight: 600; letter-spacing: -.1px; text-align: center; animation: slide-up .2s ease; }
+.offline-banner.is-syncing { background: #e8f3ed; border-color: #c5dfd1; color: #2f6b54; }
+.dark .offline-banner { background: #0d221c; border-color: rgba(255,255,255,0.05); color: #b7d4c6; }
+.dark .offline-banner.is-syncing { background: #103028; color: #9fd4b8; }
 .install-banner { position: fixed; z-index: 40; left: 16px; right: 16px; bottom: calc(90px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 11px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 11px 12px; box-shadow: 0 12px 28px #1c282818; animation: slide-up .25s ease; }
 .install-banner-mark { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; overflow: hidden; }
 .install-banner-mark img { display: block; width: 32px; height: 32px; }
