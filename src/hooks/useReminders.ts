@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { Habit } from '@/types';
 import { normalizeTimeKey, nowTimeKey, todayKey } from '@/lib/activity';
+import { canUseWebPush, subscribePush, unsubscribePush } from '@/lib/push';
 
 const FIRED_KEY = 'daymark-reminders-fired';
 
@@ -43,7 +44,22 @@ async function showReminder(habit: Habit) {
   new Notification(title, options);
 }
 
-export function useReminders(habits: Habit[], enabled: boolean) {
+export function useReminders(habits: Habit[], enabled: boolean, userId: string | null) {
+  useEffect(() => {
+    if (!userId) return;
+    if (!enabled) {
+      void unsubscribePush(userId);
+      return;
+    }
+    const sync = () => {
+      if (!canUseWebPush() || Notification.permission !== 'granted') return;
+      void subscribePush(userId);
+    };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, [enabled, userId]);
+
   useEffect(() => {
     if (!enabled || !habits.length) return;
 

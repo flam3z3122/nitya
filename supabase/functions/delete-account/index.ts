@@ -47,7 +47,7 @@ export default async (req: Request): Promise<Response> => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const userId = user.id;
 
-  const tables = ['habit_skips', 'habit_completions', 'tasks', 'goals', 'habits', 'profile_settings'] as const;
+  const tables = ['habit_skips', 'habit_completions', 'reminder_sends', 'tasks', 'goals', 'habits', 'profile_settings', 'push_subscriptions'] as const;
   for (const table of tables) {
     const { error } = await adminClient.from(table).delete().eq('user_id', userId);
     if (error && !error.message.toLowerCase().includes('could not find')) {

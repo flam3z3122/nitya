@@ -29,7 +29,7 @@ function App() {
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
   const online = useOnlineStatus();
-  useReminders(data.habits, data.profile?.notifications_enabled !== false);
+  useReminders(data.habits, data.profile?.notifications_enabled !== false, auth.user?.id ?? null);
   const verifyingLink = useRef(false);
 
   useEffect(() => {
