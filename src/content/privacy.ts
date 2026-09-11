@@ -1,4 +1,4 @@
-export const privacyUpdated = 'September 9, 2026';
+export const privacyUpdated = 'September 11, 2026';
 
 export const privacySections: { title: string; body: string[] }[] = [
   {
@@ -20,7 +20,7 @@ export const privacySections: { title: string; body: string[] }[] = [
     title: 'How we use it',
     body: [
       'To create and secure your account, show your workspace, send optional in-app reminder notifications you turn on, and improve reliability of the service.',
-      'Reminders use your browser or device notification permission. They may not fire if the app is fully closed.',
+      'Reminders use your device notification permission. If you allow them, we can send a nudge at the time you set even when the app is closed, as long as the phone is online.',
     ],
   },
   {

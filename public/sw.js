@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'daymark-v6';
+const CACHE_VERSION = 'daymark-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const OFFLINE_URL = '/offline.html';
@@ -91,6 +91,23 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => caches.match(request, { ignoreSearch: true }))
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let payload = { title: 'daymark', body: 'Time for a small step.', tag: 'daymark', data: {} };
+  try {
+    payload = { ...payload, ...(event.data ? event.data.json() : {}) };
+  } catch {
+    if (event.data) payload.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192.png',
+      tag: payload.tag || 'daymark',
+      data: payload.data,
+    })
   );
 });
 
