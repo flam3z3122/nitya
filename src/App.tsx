@@ -18,6 +18,7 @@ import { useHashRoute } from '@/hooks/useHashRoute';
 import { useReminders } from '@/hooks/useReminders';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { SplashLoader } from '@/components/SplashLoader';
 import type { Goal, Habit, Task } from '@/types';
 
 function App() {
@@ -113,12 +114,7 @@ function App() {
   };
 
   if (auth.loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner" />
-        <p>Loading your daymark…</p>
-      </div>
-    );
+    return <SplashLoader message="Loading your daymark…" />;
   }
 
   if (!auth.user) {
@@ -155,10 +151,7 @@ function App() {
 
   const page =
     showWorkspaceSpinner ? (
-      <div className="loading-screen">
-        <div className="loading-spinner" />
-        <p>Loading your workspace…</p>
-      </div>
+      <SplashLoader message="Loading your workspace…" />
     ) : data.error &&
       !data.profile &&
       !data.tasks.length &&
