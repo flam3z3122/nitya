@@ -34,6 +34,14 @@ declare module 'https://esm.sh/@supabase/supabase-js@2' {
   ): FunctionClient;
 }
 
+declare module 'npm:@supabase/supabase-js@2' {
+  export function createClient(
+    url: string,
+    key: string,
+    options?: { global?: { headers?: Record<string, string> } },
+  ): FunctionClient;
+}
+
 declare module 'npm:web-push@3.6.7' {
   const webpush: {
     setVapidDetails: (subject: string, publicKey: string, privateKey: string) => void;
