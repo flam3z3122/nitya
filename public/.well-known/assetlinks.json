@@ -4,9 +4,8 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.todayshabit.daymark",
-      "sha256_cert_fingerprints": [
-        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256"
-      ]
+      "sha256_cert_fingerprints":
+        ["C7:D8:F6:76:EE:09:FD:2F:11:3F:BC:59:22:57:CC:55:9F:80:F8:DD:63:DE:C2:92:98:39:69:26:CB:E2:B2:D5"]
     }
   }
 ]
