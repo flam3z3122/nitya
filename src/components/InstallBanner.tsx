@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
+import { isNative } from '@/lib/capacitor';
 
 const DISMISS_KEY = 'daymark-install-dismissed';
 
@@ -14,7 +15,7 @@ export function InstallBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (isStandalone() || localStorage.getItem(DISMISS_KEY) === '1') return;
+    if (isNative() || isStandalone() || localStorage.getItem(DISMISS_KEY) === '1') return;
 
     const onPrompt = (event: Event) => {
       event.preventDefault();

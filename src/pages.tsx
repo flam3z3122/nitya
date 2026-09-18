@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
 import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
 import { requestReminderPermission } from '@/hooks/useReminders';
+import { isNative } from '@/lib/capacitor';
+import { registerBackIntercept } from '@/lib/backHandler';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
 import { GoalCard } from '@/components/GoalCard';
@@ -398,6 +400,16 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (privacyOpen) return registerBackIntercept(() => { setPrivacyOpen(false); return true; });
+    return;
+  }, [privacyOpen]);
+
+  useEffect(() => {
+    if (deleteOpen && !deleting) return registerBackIntercept(() => { setDeleteOpen(false); return true; });
+    return;
+  }, [deleteOpen, deleting]);
   const [sendingVerify, setSendingVerify] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -416,6 +428,10 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
   const saveName = async () => { if (!nameValue.trim()) return; setNameSaving(true); await onUpdateProfile({ name: nameValue.trim() }); setNameSaving(false); setEditingName(false); };
   const setTheme = async (theme: 'Light' | 'Dark') => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
   const toggleNotifications = async () => {
+    if (isNative()) {
+      showToast('Native reminders are coming soon.', 'error');
+      return;
+    }
     const currentlyOn = profile?.notifications_enabled !== false;
     const next = !currentlyOn;
     if (next) {
@@ -543,7 +559,7 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
       <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : activeTheme}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
       {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${activeTheme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{activeTheme === t && <Check size={15} />}</button>)}</div>}
-      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">Reminders</span><span className={`toggle ${profile?.notifications_enabled !== false ? 'on' : 'off'}`}><i /></span></button>
+      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">{isNative() ? 'Reminders (coming soon)' : 'Reminders'}</span>{isNative() ? <span className="setting-value">soon</span> : <span className={`toggle ${profile?.notifications_enabled !== false ? 'on' : 'off'}`}><i /></span>}</button>
     </div></section>
 
     <section className="settings-section"><p className="eyebrow">LEGAL</p><div className="settings-card">

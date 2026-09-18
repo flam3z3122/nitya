@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Leaf, Lock, Mail } from 'lucide-react';
 import { validateAuthEmail, validateAuthPassword, validatePasswordConfirm } from '@/lib/authErrors';
+import { isNative } from '@/lib/capacitor';
+import { openExternal } from '@/lib/browser';
 
 type AuthScreenProps = {
   mode: 'signin' | 'signup';
@@ -173,7 +175,13 @@ export function AuthScreen({
               </button>
             </p>
             <p className="auth-legal">
-              By continuing you agree to our <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a>.
+              By continuing you agree to our{' '}
+              {isNative() ? (
+                <a href="/privacy.html" onClick={(event) => { event.preventDefault(); void openExternal('/privacy.html'); }}>Privacy policy</a>
+              ) : (
+                <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a>
+              )}
+              .
             </p>
           </>
         )}

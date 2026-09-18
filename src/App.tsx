@@ -16,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProductivityData } from '@/hooks/useProductivityData';
 import { useHashRoute } from '@/hooks/useHashRoute';
 import { useReminders } from '@/hooks/useReminders';
+import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
+import { registerBackIntercept } from '@/lib/backHandler';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { SplashLoader } from '@/components/SplashLoader';
@@ -92,6 +94,25 @@ function App() {
     setEditType(null);
     setEditItem(null);
   };
+
+  useEffect(() => {
+    if (editOpen) return registerBackIntercept(() => {
+      closeEdit();
+      return true;
+    });
+    return;
+  }, [editOpen]);
+
+  useEffect(() => {
+    if (quickAddOpen) return registerBackIntercept(() => {
+      setQuickAddOpen(false);
+      setQuickIntent(null);
+      return true;
+    });
+    return;
+  }, [quickAddOpen]);
+
+  useAndroidBackButton(screen, setScreen);
 
   const openQuickAdd = (type?: 'task' | 'habit' | 'goal') => {
     const intent = type === 'task' || type === 'habit' || type === 'goal' ? type : null;
