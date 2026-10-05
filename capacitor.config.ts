@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.todayshabit.daymark',
-  appName: 'daymark',
+  appName: 'Nitya',
   webDir: 'dist',
   backgroundColor: '#f5f9f6',
   android: {

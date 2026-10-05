@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, Leaf, Lock, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail } from 'lucide-react';
 import { validateAuthEmail, validateAuthPassword, validatePasswordConfirm } from '@/lib/authErrors';
 import { isNative } from '@/lib/capacitor';
 import { openExternal } from '@/lib/browser';
@@ -76,8 +76,8 @@ export function AuthScreen({
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="auth-brand-mark"><Leaf size={22} /></div>
-          <span>daymark</span>
+          <div className="auth-brand-mark has-logo"><img className="logo-light" src="/icons/nitya-mark-light.png" alt="Nitya" draggable={false} /><img className="logo-dark" src="/icons/nitya-mark-dark.png" alt="" aria-hidden="true" draggable={false} /></div>
+          <span>Nitya</span>
         </div>
 
         {view === 'auth' && (
@@ -169,7 +169,7 @@ export function AuthScreen({
               </button>
             </form>
             <p className="auth-switch">
-              {isSignUp ? 'Already have an account?' : 'New to daymark?'}
+              {isSignUp ? 'Already have an account?' : 'New to Nitya?'}
               <button type="button" onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}>
                 {isSignUp ? 'Sign in' : 'Create one'}
               </button>

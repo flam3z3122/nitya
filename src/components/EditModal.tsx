@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { CheckSquare, Leaf, Target, X } from 'lucide-react';
+import { CheckSquare, Sprout, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
 import { GoalFields } from '@/components/GoalFields';
 
@@ -103,7 +103,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
 
   const copy = {
     task: { eyebrow: 'Edit task', title: 'What needs to get done?', icon: CheckSquare, mark: 'quick-green' },
-    habit: { eyebrow: 'Edit habit', title: 'What routine are you building?', icon: Leaf, mark: 'quick-yellow' },
+    habit: { eyebrow: 'Edit habit', title: 'What routine are you building?', icon: Sprout, mark: 'quick-yellow' },
     goal: { eyebrow: 'Edit goal', title: 'What milestone matters?', icon: Target, mark: 'quick-blue' },
   }[type];
   const MarkIcon = copy.icon;

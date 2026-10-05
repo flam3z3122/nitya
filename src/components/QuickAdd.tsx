@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckSquare, Leaf, Plus, Target, X } from 'lucide-react';
+import { CheckSquare, Plus, Sprout, Target, X } from 'lucide-react';
 import { SuggestionChips } from '@/components/SuggestionChips';
 import { GoalFields } from '@/components/GoalFields';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
@@ -203,7 +203,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     </> : <>
       <div className="quick-add-header"><div><p className="eyebrow">QUICK ADD</p><h3>What would you like to add?</h3></div><button className="icon-button" onClick={close} aria-label="Close quick add"><X size={18} /></button></div>
       <div className="quick-add-options">
-        <button onClick={() => setType('habit')}><span className="quick-icon quick-yellow"><Leaf size={20} /></span><span><strong>Habit</strong><small>A routine to build</small></span></button>
+        <button onClick={() => setType('habit')}><span className="quick-icon quick-yellow"><Sprout size={20} /></span><span><strong>Habit</strong><small>A routine to build</small></span></button>
         <button onClick={() => setType('task')}><span className="quick-icon quick-green"><CheckSquare size={20} /></span><span><strong>Task</strong><small>A thing to get done</small></span></button>
         <button onClick={() => setType('goal')}><span className="quick-icon quick-blue"><Target size={20} /></span><span><strong>Goal</strong><small>A milestone to reach</small></span></button>
       </div>

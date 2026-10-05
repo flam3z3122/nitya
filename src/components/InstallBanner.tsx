@@ -55,12 +55,12 @@ export function InstallBanner() {
   if (!visible) return null;
 
   return (
-    <div className="install-banner" role="dialog" aria-label="Install daymark">
+    <div className="install-banner" role="dialog" aria-label="Install Nitya">
       <span className="install-banner-mark" aria-hidden>
-        <img src="/icons/icon-192.png?v=6" alt="" width={32} height={32} />
+        <img src="/icons/icon-192.png?v=7" alt="" width={32} height={32} />
       </span>
       <div className="install-banner-copy">
-        <strong>Install daymark</strong>
+        <strong>Install Nitya</strong>
         <span>Add it to your home screen for quicker access.</span>
       </div>
       <button type="button" className="button button-dark install-banner-action" onClick={() => void install()}>

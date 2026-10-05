@@ -135,7 +135,7 @@ function App() {
   };
 
   if (auth.loading) {
-    return <SplashLoader message="Loading your daymark…" />;
+    return <SplashLoader message="Loading your Nitya…" />;
   }
 
   if (!auth.user) {
