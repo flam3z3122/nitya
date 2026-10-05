@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>daymark — Offline</title>
+    <title>Nitya — Offline</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { min-height: 100vh; display: grid; place-items: center; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f9f6; color: #1c2828; padding: 24px; }
       .card { text-align: center; max-width: 360px; }
-      .icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 18px; background: #4f947b; }
-      .icon svg { width: 34px; height: 34px; }
+      .icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 18px; background: #fff; overflow: hidden; }
+      .icon img { width: 100%; height: 100%; object-fit: contain; }
       h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
       p { font-size: 14px; line-height: 1.5; color: #71807e; margin-bottom: 20px; }
       button { font-family: inherit; font-size: 14px; font-weight: 600; color: #fff; background: #4f947b; border: none; border-radius: 12px; padding: 12px 28px; cursor: pointer; transition: background 0.2s ease; }
@@ -19,13 +19,10 @@
   <body>
     <div class="card">
       <div class="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
-          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 12 13"/>
-        </svg>
+        <img src="/icons/nitya-mark-light.png" alt="Nitya" width="64" height="64" />
       </div>
       <h1>You're offline</h1>
-      <p>Open daymark once while connected so we can save the app on this device. After that, your habits stay available offline.</p>
+      <p>Open Nitya once while connected so we can save the app on this device. After that, your habits stay available offline.</p>
       <button onclick="window.location.reload()">Try again</button>
     </div>
   </body>

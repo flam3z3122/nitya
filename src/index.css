@@ -567,3 +567,12 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
   }
   .splash-center { opacity: 1; transform: none; }
 }
+
+/* Nitya brand logo: image mark with light/dark variants. Layout and sizes
+   stay on the existing .brand-mark / .auth-brand-mark / .splash-mark boxes. */
+.brand-mark.has-logo, .auth-brand-mark.has-logo { background: transparent; overflow: hidden; }
+.splash-mark.has-logo { background: transparent; box-shadow: none; overflow: hidden; }
+.brand-mark.has-logo img, .auth-brand-mark.has-logo img, .splash-mark.has-logo img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: inherit; }
+.logo-dark { display: none; }
+.dark .logo-light { display: none; }
+.dark .logo-dark { display: block; }

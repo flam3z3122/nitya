@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Check, Dumbbell, Droplet, Flame, Leaf, Moon, Sparkles, Target, User } from 'lucide-react';
+import { ArrowRight, Check, Dumbbell, Droplet, Flame, Moon, Sparkles, Sprout, Target, User } from 'lucide-react';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
 
 type OnboardingScreenProps = {
@@ -13,7 +13,7 @@ type ExampleHabit = { name: string; icon: string; color: string; frequency: stri
 const lucideMap: Record<string, typeof Flame> = {
   '\u{1F4A7}': Droplet,
   '\u{1F3CB}\u{FE0F}': Dumbbell,
-  '\u{1F4D6}': Leaf,
+  '\u{1F4D6}': Sprout,
   '\u{1F4A4}': Moon,
   '\u{1F9D8}': Sparkles,
   '\u{1F6B6}': Target,
@@ -53,8 +53,8 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
     <div className="auth-screen">
       <div className="auth-card onboarding-card">
         <div className="auth-brand">
-          <div className="auth-brand-mark"><Leaf size={22} /></div>
-          <span>daymark</span>
+          <div className="auth-brand-mark has-logo"><img className="logo-light" src="/icons/nitya-mark-light.png" alt="Nitya" draggable={false} /><img className="logo-dark" src="/icons/nitya-mark-dark.png" alt="" aria-hidden="true" draggable={false} /></div>
+          <span>Nitya</span>
         </div>
 
         <div className="onboarding-progress">
@@ -124,7 +124,7 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
             <div className="onboarding-hero">
               <div className="onboarding-icon-large"><Sparkles size={32} /></div>
               <h1>Tips to build momentum</h1>
-              <p>A few quick tips to help you get the most out of daymark.</p>
+              <p>A few quick tips to help you get the most out of Nitya.</p>
             </div>
             <div className="onboarding-tips">
               {tips.map((tip) => (

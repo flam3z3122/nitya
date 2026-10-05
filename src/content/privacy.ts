@@ -4,7 +4,7 @@ export const privacySections: { title: string; body: string[] }[] = [
   {
     title: 'Who we are',
     body: [
-      'daymark is a habit, task, and goal tracker. This policy explains what information we collect when you use the app and website, and how we use it.',
+      'Nitya is a habit, task, and goal tracker. This policy explains what information we collect when you use the app and website, and how we use it.',
     ],
   },
   {
@@ -40,7 +40,7 @@ export const privacySections: { title: string; body: string[] }[] = [
   {
     title: 'Children',
     body: [
-      'daymark is not directed at children under 13, and we do not knowingly collect personal information from them.',
+      'Nitya is not directed at children under 13, and we do not knowingly collect personal information from them.',
     ],
   },
   {
@@ -52,7 +52,7 @@ export const privacySections: { title: string; body: string[] }[] = [
   {
     title: 'Contact',
     body: [
-      'If you have a privacy question, use the email address on your daymark account or contact the developer who published this app listing.',
+      'If you have a privacy question, use the email address on your Nitya account or contact the developer who published this app listing.',
     ],
   },
 ];

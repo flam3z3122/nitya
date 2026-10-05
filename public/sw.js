@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'daymark-v7';
+const CACHE_VERSION = 'daymark-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const OFFLINE_URL = '/offline.html';
@@ -16,6 +16,8 @@ const STATIC_ASSETS = [
   '/icons/maskable-512.png',
   '/icons/apple-touch-icon.png',
   '/icons/favicon-32.png',
+  '/icons/nitya-mark-light.png',
+  '/icons/nitya-mark-dark.png',
   '/icon.svg',
 ];
 
@@ -95,7 +97,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let payload = { title: 'daymark', body: 'Time for a small step.', tag: 'daymark', data: {} };
+  let payload = { title: 'Nitya', body: 'Time for a small step.', tag: 'daymark', data: {} };
   try {
     payload = { ...payload, ...(event.data ? event.data.json() : {}) };
   } catch {
