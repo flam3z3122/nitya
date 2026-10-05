@@ -5,6 +5,8 @@ import { friendlyAuthMessage } from '@/lib/authErrors';
 import { enqueueMutation, isNetworkFailure, readQueue, readSnapshot, writeQueue, writeSnapshot, clearOfflineData } from '@/lib/offlineStore';
 import type { QueuedMutationInput } from '@/lib/offlineStore';
 import { flushMutationQueue } from '@/lib/offlineSync';
+import { WEBSITE_URL } from '@/lib/browser';
+import { isNative } from '@/lib/capacitor';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
@@ -720,7 +722,8 @@ export function useProductivityData(userId: string | null) {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/#/profile`,
+        // On native the WebView origin is http://localhost, so email links must point at the hosted site.
+        emailRedirectTo: `${isNative() ? WEBSITE_URL : window.location.origin}/#/profile`,
       },
     });
     if (error) return { error: friendlyAuthMessage(error, 'reset') };

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthMessage } from '@/lib/authErrors';
+import { WEBSITE_URL } from '@/lib/browser';
+import { isNative } from '@/lib/capacitor';
 
 export type AuthUser = { id: string; email: string };
 
@@ -106,7 +108,8 @@ export function useAuth() {
   const resetPassword = useCallback(async (email: string): Promise<boolean> => {
     setState((current) => ({ ...current, busy: true, error: null, notice: null }));
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      // On native the WebView origin is http://localhost, so email links must point at the hosted site.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: isNative() ? WEBSITE_URL : window.location.origin });
       if (error) {
         setState((current) => ({ ...current, busy: false, error: friendlyAuthMessage(error, 'reset'), notice: null }));
         return false;
