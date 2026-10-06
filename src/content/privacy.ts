@@ -10,7 +10,7 @@ export const privacySections: { title: string; body: string[] }[] = [
   {
     title: 'Information we collect',
     body: [
-      'Account details: the email address and password you use to sign in, plus the display name you choose. You may optionally verify your email later from Profile.',
+      'Account details: the email address and password you use to sign in, plus the display name you choose.',
       'App data you create: habits, tasks, goals, check-ins, skips, reminder times, and progress.',
       'Preferences: theme and whether reminders are enabled.',
       'Technical data: a sign-in session so you stay logged in on this device. We do not sell your personal information.',
@@ -32,7 +32,7 @@ export const privacySections: { title: string; body: string[] }[] = [
   {
     title: 'Your choices',
     body: [
-      'You can edit your name, theme, and reminder setting in Profile, and optionally verify your email.',
+      'You can edit your name, theme, and reminder setting in Profile.',
       'You can delete habits, tasks, and goals from the app.',
       'You can delete your entire account in Profile. That removes your sign-in and the workspace data tied to it. On the web, follow the steps at /delete-account.html.',
     ],

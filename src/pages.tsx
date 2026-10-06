@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, ShieldAlert, ShieldCheck, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
 import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
@@ -382,14 +382,12 @@ type ProfilePageProps = {
   authEmail: string;
   onSignOut: () => void;
   onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled'>>) => Promise<void>;
-  onSendVerification: () => Promise<{ error: string | null }>;
-  onConfirmEmail: (payload: { token?: string; token_hash?: string; type?: string }) => Promise<{ error: string | null }>;
   onDeleteAccount: () => Promise<void>;
 };
 
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
-export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, onSendVerification, onConfirmEmail, onDeleteAccount }: ProfilePageProps) {
+export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, onDeleteAccount }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
@@ -410,10 +408,6 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     if (deleteOpen && !deleting) return registerBackIntercept(() => { setDeleteOpen(false); return true; });
     return;
   }, [deleteOpen, deleting]);
-  const [sendingVerify, setSendingVerify] = useState(false);
-  const [verifyCode, setVerifyCode] = useState('');
-  const [confirming, setConfirming] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
   const name = profile?.name ?? 'Your name';
   const email = profile?.email ?? authEmail ?? '';
   const themes: Array<'Light' | 'Dark'> = ['Light', 'Dark'];
@@ -444,31 +438,6 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     setSavingKey('notifications');
     await onUpdateProfile({ notifications_enabled: next });
     setSavingKey(null);
-  };
-
-  const handleSendVerification = async () => {
-    setSendingVerify(true);
-    const result = await onSendVerification();
-    setSendingVerify(false);
-    if (result.error) showToast(result.error, 'error');
-    else {
-      setCodeSent(true);
-      showToast('Check your inbox for a verification email.', 'success');
-    }
-  };
-
-  const handleConfirmCode = async () => {
-    const token = verifyCode.trim();
-    if (!token) return;
-    setConfirming(true);
-    const result = await onConfirmEmail({ token });
-    setConfirming(false);
-    if (result.error) showToast(result.error, 'error');
-    else {
-      setVerifyCode('');
-      setCodeSent(false);
-      showToast('Your email is verified.', 'success');
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -527,33 +496,7 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
       <div className="setting-row email-row">
         <span className="setting-icon"><Mail size={18} /></span>
         <span className="setting-title">{email}</span>
-        <span className={`verify-badge ${profile?.email_verified ? 'verified' : 'unverified'}`}>
-          {profile?.email_verified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-          {profile?.email_verified ? 'Verified' : 'Unverified'}
-        </span>
       </div>
-      {!profile?.email_verified && (
-        <button type="button" className="setting-row verify-action-row" disabled={sendingVerify} onClick={() => void handleSendVerification()}>
-          <span className="setting-title">{sendingVerify ? 'Sending\u2026' : codeSent ? 'Resend verification email' : 'Send verification email'}</span>
-          {sendingVerify ? <Loader2 size={15} className="spin setting-arrow" /> : <Mail size={15} className="setting-arrow" />}
-        </button>
-      )}
-      {!profile?.email_verified && codeSent && (
-        <div className="verify-code-row">
-          <input
-            className="verify-code-input"
-            value={verifyCode}
-            onChange={(event) => setVerifyCode(event.target.value)}
-            placeholder="Code from email"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            onKeyDown={(event) => { if (event.key === 'Enter') void handleConfirmCode(); }}
-          />
-          <button type="button" className="button button-dark" disabled={confirming || !verifyCode.trim()} onClick={() => void handleConfirmCode()}>
-            {confirming ? 'Checking\u2026' : 'Confirm'}
-          </button>
-        </div>
-      )}
     </div></section>
 
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">

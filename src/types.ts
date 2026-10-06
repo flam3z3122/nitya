@@ -38,7 +38,6 @@ export type ProfileSettings = {
   notifications_enabled: boolean;
   timezone: string;
   onboarded: boolean;
-  email_verified: boolean;
 };
 
 export type DataState = {
