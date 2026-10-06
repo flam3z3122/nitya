@@ -33,3 +33,7 @@ android/app/src/main/assets/
 *.keystore
 *.aab
 *.apk
+
+# Deployment and Secret files
+google-services.json
+firebase.json
