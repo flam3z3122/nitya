@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { QuickAdd } from '@/components/QuickAdd';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -33,23 +33,6 @@ function App() {
   const data = useProductivityData(auth.user?.id ?? null);
   const online = useOnlineStatus();
   useReminders(data.habits, data.profile?.notifications_enabled !== false, auth.user?.id ?? null);
-  const verifyingLink = useRef(false);
-
-  useEffect(() => {
-    if (!auth.user || data.profile?.email_verified || verifyingLink.current) return;
-    const search = new URLSearchParams(window.location.search);
-    const queryFromHash = window.location.hash.includes('?')
-      ? new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?')))
-      : new URLSearchParams();
-    const token_hash = search.get('token_hash') ?? queryFromHash.get('token_hash') ?? undefined;
-    const token = search.get('token') ?? queryFromHash.get('token') ?? undefined;
-    const type = search.get('type') ?? queryFromHash.get('type') ?? undefined;
-    if (!token_hash && !token) return;
-    verifyingLink.current = true;
-    void data.confirmEmail({ token, token_hash, type }).finally(() => {
-      verifyingLink.current = false;
-    });
-  }, [auth.user, data.confirmEmail, data.profile?.email_verified]);
 
   useEffect(() => {
     const mode = data.profile?.theme ?? 'Light';
@@ -239,8 +222,6 @@ function App() {
         authEmail={auth.user?.email ?? ''}
         onSignOut={() => void auth.signOut()}
         onUpdateProfile={data.updateProfile}
-        onSendVerification={data.sendVerificationEmail}
-        onConfirmEmail={data.confirmEmail}
         onDeleteAccount={async () => {
           await data.deleteAccount();
           await auth.signOut();

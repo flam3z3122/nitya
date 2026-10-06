@@ -293,15 +293,7 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .profile-card { display: flex; align-items: center; gap: 15px; background: #eaf3ee; border-radius: 20px; padding: 22px; min-width: 0; overflow: hidden; }.profile-card > div:nth-child(2) { min-width: 0; overflow: hidden; }.profile-card h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.profile-card p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.avatar { display: grid; place-items: center; border-radius: 50%; background: #397664; color: #fff; font: 700 12px 'Manrope', sans-serif; }.avatar-large { width: 64px; height: 64px; font-size: 19px; border: 4px solid #c8e1d1; }.profile-card h2 { margin: 0; font: 700 20px 'Manrope', sans-serif; }.profile-card p { color: #759084; margin: 4px 0 8px; font-size: 11px; }.member-pill { display: inline-flex; align-items: center; gap: 4px; color: #5c947a; background: #d7ebde; border-radius: 20px; padding: 5px 8px; font-size: 9px; }.settings-section { margin-top: 29px; }.settings-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; margin-top: 11px; }.setting-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: #fff; border-bottom: 1px solid #eef2ef; min-height: 57px; padding: 10px 14px; min-width: 0; overflow: hidden; }.setting-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }.setting-row:last-child { border: 0; }.setting-row:hover { background: #fbfdfb; }.setting-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #edf4ef; color: #568b75; }.setting-title { font-size: 12px; font-weight: 600; }.setting-value { margin-left: auto; color: #8a9892; font-size: 11px; }.setting-arrow { color: #adb9b4; margin-left: 2px; }.toggle { margin-left: auto; width: 34px; height: 20px; padding: 3px; background: #d6e9db; border-radius: 20px; }.toggle i { display: block; width: 14px; height: 14px; border-radius: 50%; background: #4f9c80; margin-left: 14px; }.logout-button { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 29px; padding: 13px; border-radius: 12px; color: #c66e5d; background: #fff1ed; font-size: 12px; font-weight: 700; }.logout-button:hover { background: #ffe5df; }
 .email-row { cursor: default; }.email-row:hover { background: #fff; }
 .email-row .setting-title { flex: 1; }
-.verify-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex: 0 0 auto; }
-.verify-badge.verified { color: #4d8c6e; background: #e2f3e9; }
-.verify-badge.unverified { color: #b87a3f; background: #fef5e6; }
-.verify-action-row { color: #4d8c6e; }
-.verify-action-row .setting-title { color: #4d8c6e; }
-.verify-code-row { display: flex; gap: 8px; padding: 8px 14px 10px; border-top: 1px solid #eef2ef; }
-.verify-code-input { flex: 1; min-width: 0; height: 34px; border: 1px solid #d9e4de; border-radius: 9px; padding: 0 10px; font: inherit; font-size: 12px; outline: 0; }
-.verify-code-input:focus { border-color: #75ae91; box-shadow: 0 0 0 3px #e2f1e8; }
-.verify-code-row .button { min-height: 34px; padding: 0 12px; font-size: 12px; }
+
 .danger-eyebrow { color: #b76558; }
 .danger-row .setting-icon { background: #fff1ed; color: #c66e5d; }
 .danger-row .setting-title { flex: 1; color: #a85a4c; }
@@ -418,7 +410,7 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .dark .privacy-section p, .dark .privacy-updated { color: var(--muted); }
 .dark .danger-row .setting-icon { background: rgba(196,94,78,0.16); color: #ffb3a8; }
 .dark .danger-row .setting-title { color: #ffb3a8; }
-.dark .verify-action-row .setting-title { color: var(--green); }
+
 .dark .email-row:hover { background: transparent; }
 .dark .delete-modal { background: #07141a; }
 .dark .delete-modal-body { color: var(--muted); }

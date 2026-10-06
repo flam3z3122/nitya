@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { canCatchUpPreviousPeriod, catchUpFor, streakFromHistory, isWeeklyHabit, todayKey, weekContains, weekDateKeys } from '@/lib/activity';
-import { friendlyAuthMessage } from '@/lib/authErrors';
 import { enqueueMutation, isNetworkFailure, readQueue, readSnapshot, writeQueue, writeSnapshot, clearOfflineData } from '@/lib/offlineStore';
 import type { QueuedMutationInput } from '@/lib/offlineStore';
 import { flushMutationQueue } from '@/lib/offlineSync';
-import { WEBSITE_URL } from '@/lib/browser';
-import { isNative } from '@/lib/capacitor';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
 type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
@@ -81,7 +78,6 @@ function mapProfile(row: {
   notifications_enabled: boolean;
   timezone: string;
   onboarded: boolean;
-  email_verified?: boolean | null;
 }): ProfileSettings {
   return {
     name: row.name,
@@ -90,31 +86,20 @@ function mapProfile(row: {
     notifications_enabled: row.notifications_enabled,
     timezone: row.timezone,
     onboarded: row.onboarded,
-    email_verified: Boolean(row.email_verified),
   };
 }
 
 async function ensureProfile(userId: string, email: string): Promise<ProfileSettings | null> {
-  const fullSelect = 'name, email, theme, notifications_enabled, timezone, onboarded, email_verified';
-  const baseSelect = 'name, email, theme, notifications_enabled, timezone, onboarded';
+  const select = 'name, email, theme, notifications_enabled, timezone, onboarded';
 
-  const existingFull = await supabase.from('profile_settings').select(fullSelect).eq('user_id', userId).maybeSingle();
-  if (existingFull.data) return mapProfile(existingFull.data as Parameters<typeof mapProfile>[0]);
-  if (existingFull.error?.message.includes('email_verified')) {
-    const existingBase = await supabase.from('profile_settings').select(baseSelect).eq('user_id', userId).maybeSingle();
-    if (existingBase.data) return mapProfile(existingBase.data as Parameters<typeof mapProfile>[0]);
-  } else if (existingFull.data === null && !existingFull.error) {
-    // no row yet
-  } else if (existingFull.error) {
+  const existing = await supabase.from('profile_settings').select(select).eq('user_id', userId).maybeSingle();
+  if (existing.data) return mapProfile(existing.data as Parameters<typeof mapProfile>[0]);
+  if (existing.error) {
     return null;
   }
 
-  const created = await supabase.from('profile_settings').insert({ user_id: userId, email }).select(fullSelect).maybeSingle();
+  const created = await supabase.from('profile_settings').insert({ user_id: userId, email }).select(select).maybeSingle();
   if (created.data) return mapProfile(created.data as Parameters<typeof mapProfile>[0]);
-  if (created.error?.message.includes('email_verified')) {
-    const createdBase = await supabase.from('profile_settings').select(baseSelect).eq('user_id', userId).maybeSingle();
-    if (createdBase.data) return mapProfile(createdBase.data as Parameters<typeof mapProfile>[0]);
-  }
   return null;
 }
 
@@ -714,44 +699,6 @@ export function useProductivityData(userId: string | null) {
     }
   }, [userId, queueChange]);
 
-  const sendVerificationEmail = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!navigator.onLine) return { error: 'Connect to send a verification email.' };
-    const email = stateRef.current.profile?.email;
-    if (!email) return { error: 'No email on file.' };
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        // On native the WebView origin is http://localhost, so email links must point at the hosted site.
-        emailRedirectTo: `${isNative() ? WEBSITE_URL : window.location.origin}/#/profile`,
-      },
-    });
-    if (error) return { error: friendlyAuthMessage(error, 'reset') };
-    return { error: null };
-  }, []);
-
-  const confirmEmail = useCallback(async (payload: { token?: string; token_hash?: string; type?: string }): Promise<{ error: string | null }> => {
-    if (!navigator.onLine) return { error: 'Connect to verify your email.' };
-    const { data: session } = await supabase.auth.getSession();
-    const accessToken = session.session?.access_token;
-    if (!accessToken) return { error: 'Sign in to verify your email.' };
-    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const response = await fetch(`${baseUrl}/functions/v1/confirm-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({})) as { error?: string };
-      return { error: body.error ?? 'Could not verify your email. Please try again.' };
-    }
-    setState((current) => ({
-      ...current,
-      profile: current.profile ? { ...current.profile, email_verified: true } : current.profile,
-    }));
-    return { error: null };
-  }, []);
-
   const deleteAccount = useCallback(async () => {
     const { data: session } = await supabase.auth.getSession();
     const token = session.session?.access_token;
@@ -769,5 +716,5 @@ export function useProductivityData(userId: string | null) {
     if (userId) clearOfflineData(userId);
   }, [userId]);
 
-  return { ...state, reload: load, toggleTask, toggleHabit, markPreviousPeriod, skipPreviousPeriod, undoSkipPreviousPeriod, createTask, createHabit, createHabitWithDetails, createGoal, checkInGoal, updateTask, updateHabit, updateGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding, sendVerificationEmail, confirmEmail, deleteAccount };
+  return { ...state, reload: load, toggleTask, toggleHabit, markPreviousPeriod, skipPreviousPeriod, undoSkipPreviousPeriod, createTask, createHabit, createHabitWithDetails, createGoal, checkInGoal, updateTask, updateHabit, updateGoal, deleteTask, deleteHabit, deleteGoal, updateProfile, completeOnboarding, deleteAccount };
 }
