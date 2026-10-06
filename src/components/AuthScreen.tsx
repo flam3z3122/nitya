@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { validateAuthEmail, validateAuthPassword, validatePasswordConfirm } from '@/lib/authErrors';
 import { isNative } from '@/lib/capacitor';
 import { openExternal } from '@/lib/browser';
@@ -38,6 +38,8 @@ export function AuthScreen({
   const [view, setView] = useState<'auth' | 'forgot' | 'sent'>('auth');
   const [resetEmail, setResetEmail] = useState('');
   const [fields, setFields] = useState<FieldErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const isSignUp = mode === 'signup';
 
   const switchMode = (next: 'signin' | 'signup') => {
@@ -109,7 +111,7 @@ export function AuthScreen({
                 <label className={`auth-field ${fields.password ? 'is-invalid' : ''}`}>
                   <Lock size={16} />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(event) => {
                       setPassword(event.target.value);
@@ -120,6 +122,15 @@ export function AuthScreen({
                     aria-invalid={Boolean(fields.password)}
                     aria-describedby={fields.password ? 'auth-password-error' : isSignUp ? 'auth-password-hint' : undefined}
                   />
+                  <button
+                    type="button"
+                    className="auth-toggle-password"
+                    onClick={(e) => { e.preventDefault(); setShowPassword((prev) => !prev); }}
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </label>
                 {fields.password ? (
                   <p id="auth-password-error" className="auth-field-error">{fields.password}</p>
@@ -132,7 +143,7 @@ export function AuthScreen({
                   <label className={`auth-field ${fields.confirm ? 'is-invalid' : ''}`}>
                     <Lock size={16} />
                     <input
-                      type="password"
+                      type={showConfirm ? 'text' : 'password'}
                       value={confirm}
                       onChange={(event) => {
                         setConfirm(event.target.value);
@@ -143,6 +154,15 @@ export function AuthScreen({
                       aria-invalid={Boolean(fields.confirm)}
                       aria-describedby={fields.confirm ? 'auth-confirm-error' : undefined}
                     />
+                    <button
+                      type="button"
+                      className="auth-toggle-password"
+                      onClick={(e) => { e.preventDefault(); setShowConfirm((prev) => !prev); }}
+                      tabIndex={-1}
+                      aria-label={showConfirm ? "Hide password" : "Show password"}
+                    >
+                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </label>
                   {fields.confirm && <p id="auth-confirm-error" className="auth-field-error">{fields.confirm}</p>}
                 </div>
