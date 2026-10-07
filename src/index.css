@@ -201,7 +201,8 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .onboarding-habit-check { margin-left: auto; color: #4f9c80; }
 .onboarding-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
 .onboarding-back { display: inline-flex; align-items: center; gap: 5px; background: transparent; color: #8a9792; font-size: 12px; font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: .2s ease; flex: 0 0 auto; }.onboarding-back:hover { color: #3e8068; background: #f3f8f4; }
-.onboarding-nav .auth-submit { flex: 1; min-height: 44px; margin-top: 0; }
+.onboarding-nav .auth-submit { flex: 1; min-height: 44px; margin-top: 0; min-width: 0; }
+.onboarding-nav .button-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .onboarding-tips { display: grid; gap: 10px; }
 .onboarding-tip { display: flex; gap: 11px; align-items: start; background: #f7f9f7; border: 1px solid #e5ebe8; border-radius: 13px; padding: 13px 14px; }.onboarding-tip-icon { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #e8f3ed; color: #4d9376; }.onboarding-tip strong { display: block; font-size: 13px; font-weight: 700; color: #3a4a44; }.onboarding-tip p { margin: 3px 0 0; font-size: 11px; color: #84928c; line-height: 1.5; }
 .sidebar { display: none; }

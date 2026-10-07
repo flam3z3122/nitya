@@ -113,8 +113,9 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
             <div className="onboarding-nav">
               <button className="onboarding-back" onClick={() => setStep(0)}><ArrowRight size={15} className="rotate-180" /> Back</button>
               <button className="auth-submit" disabled={loading} onClick={() => setStep(2)}>
-                {selected.size > 0 ? `Continue with ${selected.size} habit${selected.size > 1 ? 's' : ''}` : 'Skip for now'} <ArrowRight size={17} />
-              </button>
+              <span className="button-text">{selected.size > 0 ? `Continue with ${selected.size} habit${selected.size > 1 ? 's' : ''}` : 'Skip for now'}</span>
+              <ArrowRight size={17} />
+            </button>
             </div>
           </div>
         )}
@@ -141,7 +142,8 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
             <div className="onboarding-nav">
               <button className="onboarding-back" onClick={() => setStep(1)}><ArrowRight size={15} className="rotate-180" /> Back</button>
               <button className="auth-submit" disabled={loading} onClick={finish}>
-                {loading ? 'Setting up\u2026' : 'Start building habits'} <ArrowRight size={17} />
+                <span className="button-text">{loading ? 'Setting up\u2026' : 'Start building habits'}</span>
+                <ArrowRight size={17} />
               </button>
             </div>
           </div>
