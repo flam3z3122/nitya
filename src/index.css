@@ -68,9 +68,20 @@
 .dark { --panel: #07141a; --text: var(--ink); }
 .dark body { background: #071018; }
 .dark .auth-card, .dark .goal-card, .dark .calendar-card, .dark .stats-card, .dark .profile-card, .dark .settings-card, .dark .habit-card, .dark .task-card, .dark .chart-card, .dark .consistency-card, .dark .quick-add-menu { background: #07141a; border-color: var(--line); color: var(--ink); }
+.dark .onboarding-card { background: #07141a; border-color: var(--line); }
+.dark .onboarding-name-input { background: #071018; border-color: rgba(255,255,255,0.05); color: var(--ink); }
+.dark .onboarding-habit-pill { background: #07141a; border-color: rgba(255,255,255,0.05); color: #8e9c97; }
+.dark .onboarding-habit-pill:hover { background: #0c1c24; border-color: rgba(255,255,255,0.08); }
+.dark .onboarding-habit-pill.selected { background: #0d221c; border-color: var(--green); color: #b7d4c6; }
+.dark .onboarding-tip { background: #07141a; border-color: rgba(255,255,255,0.05); }
+.dark .onboarding-tip-icon { background: rgba(103,179,137,0.1); color: var(--green); }
+.dark .onboarding-tip strong { color: #dbeae2; }
+.dark .onboarding-tip p { color: #8e9c97; }
 
 /* Additional dark mode overrides to cover remaining light styles */
-.dark .page-content { background: transparent; }
+.dark .main-area { background: #071018; }
+.dark .app-shell { background: #071018; min-height: 100vh; }
+.dark .page-content { background: #071018; }
 .dark .button-light { background: transparent; border-color: rgba(255,255,255,0.06); color: var(--ink); }
 .dark .icon-button { background: #07141a; border-color: rgba(255,255,255,0.04); color: var(--muted); }
 .dark .header-actions { color: var(--muted); }
@@ -127,10 +138,15 @@
 
 /* Quick add and menus */
 .dark .quick-add { background: #c97743; }
-.dark .quick-add-menu { background: #07141a; box-shadow: 0 16px 35px #00000080; }
+.dark .sidebar { background: #07141a; border-right-color: rgba(255,255,255,0.03); }
+.dark .sidebar-note { background: #0d1e1a; border-color: rgba(255,255,255,0.03); color: #8e9c97; }
+.dark .sidebar-user { border-top-color: rgba(255,255,255,0.03); }
+.dark .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--green); }
+.dark .nav-item.active { background: rgba(103,179,137,0.12); color: var(--green); }
 
-/* Dark mode: make overflow menus dark to match other panels */
-.dark .overflow-menu .menu { background: #07141a; border-color: rgba(255,255,255,0.03); box-shadow: 0 12px 30px rgba(0,0,0,0.6); }
+.dark .auth-screen { background: #071018; }
+.dark .auth-screen::before { background: #0c1a16; }
+.dark .auth-screen::after { background: #1a1711; }
 
 /* Misc text colors */
 .dark p, .dark h1, .dark h2, .dark strong, .dark span, .dark small { color: var(--ink); }
@@ -400,7 +416,8 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .habit-suggestions.compact .suggestion-chip { font-size: 11px; padding: 6px 8px; }
 .habit-suggestions.compact .suggestion-chip-more { border-style: dashed; color: var(--green-dark); background: transparent; }
 .dark .quick-icon-name { color: var(--green); }
-.dark .quick-icon-pick.is-active { background: rgba(63,160,116,0.14); border-color: var(--green); color: var(--green); }
+.dark .empty-state { background: #07141a; border-color: rgba(255,255,255,0.03); }
+.dark .empty-icon { background: rgba(103,179,137,0.08); color: var(--green); }
 .privacy-page { max-width: 680px; }
 .privacy-updated { margin: 0 0 22px; color: #71807e; font-size: 12px; }
 .privacy-section { margin-bottom: 22px; }
