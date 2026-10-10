@@ -211,13 +211,13 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .onboarding-hero { text-align: center; margin: 8px 0 4px; }.onboarding-hero h1 { margin: 14px 0 8px; font: 800 24px 'Manrope', sans-serif; letter-spacing: -.8px; }.onboarding-hero p { color: #84928c; font-size: 12px; line-height: 1.5; margin: 0; }
 .onboarding-icon-large { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; background: #e8f3ed; color: #4d9376; margin: 0 auto; }
 .onboarding-name-input { width: 100%; border: 1px solid #dce6e1; border-radius: 12px; padding: 13px 15px; font: inherit; font-size: 14px; outline: 0; transition: .2s ease; }.onboarding-name-input:focus { border-color: #75ae91; box-shadow: 0 0 0 3px #e2f1e8; }
-.onboarding-habit-grid { display: grid; gap: 8px; }
+.onboarding-habit-grid { display: grid; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 .onboarding-habit-pill { display: flex; align-items: center; gap: 11px; background: #f7f9f7; border: 1.5px solid #e5ebe8; border-radius: 13px; padding: 11px 13px; font-size: 13px; font-weight: 600; color: #5a6964; transition: .2s ease; text-align: left; }.onboarding-habit-pill:hover { border-color: #c4d9ce; background: #f3f8f4; }.onboarding-habit-pill.selected { border-color: #4f9c80; background: #e8f3ed; color: #2d5e4c; }
 .onboarding-habit-icon { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; }.onboarding-habit-icon.habit-mint { color: #438c72; background: #dff0e6; }.onboarding-habit-icon.habit-peach { color: #c27c52; background: #f9e5d8; }.onboarding-habit-icon.habit-blue { color: #548da3; background: #e0eef3; }.onboarding-habit-icon.habit-lavender { color: #907f9f; background: #eee9f2; }
 .onboarding-habit-check { margin-left: auto; color: #4f9c80; }
 .onboarding-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
 .onboarding-back { display: inline-flex; align-items: center; gap: 5px; background: transparent; color: #8a9792; font-size: 12px; font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: .2s ease; flex: 0 0 auto; }.onboarding-back:hover { color: #3e8068; background: #f3f8f4; }
-.onboarding-nav .auth-submit { flex: 1; min-height: 44px; margin-top: 0; min-width: 0; }
+.onboarding-nav .auth-submit { flex: 1; min-height: 44px; margin-top: 0; min-width: 0; padding: 0 12px; font-size: 12px; }
 .onboarding-nav .button-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .onboarding-tips { display: grid; gap: 10px; }
 .onboarding-tip { display: flex; gap: 11px; align-items: start; background: #f7f9f7; border: 1px solid #e5ebe8; border-radius: 13px; padding: 13px 14px; }.onboarding-tip-icon { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #e8f3ed; color: #4d9376; }.onboarding-tip strong { display: block; font-size: 13px; font-weight: 700; color: #3a4a44; }.onboarding-tip p { margin: 3px 0 0; font-size: 11px; color: #84928c; line-height: 1.5; }

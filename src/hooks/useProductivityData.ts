@@ -104,10 +104,7 @@ async function ensureProfile(userId: string, email: string): Promise<ProfileSett
 }
 
 async function ensureWelcomeTask(): Promise<void> {
-  const { count } = await supabase.from('tasks').select('*', { count: 'exact', head: true });
-  if (count === 0) {
-    await supabase.from('tasks').insert({ title: 'Welcome to Nitya — tap the circle to complete me', category: 'Personal', priority: 'Medium', due_label: 'Anytime' });
-  }
+  // Removed Welcome Task
 }
 
 function snapshotToState(userId: string): DataState | null {
@@ -159,7 +156,7 @@ export function useProductivityData(userId: string | null) {
     }
 
     try {
-      await ensureWelcomeTask();
+      // await ensureWelcomeTask();
     } catch {
       // Welcome task is optional while restoring a cached workspace.
     }
