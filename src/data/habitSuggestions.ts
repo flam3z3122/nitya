@@ -6,7 +6,7 @@ export type HabitSuggestion = {
 };
 
 export const goodHabitSuggestions: HabitSuggestion[] = [
-  { name: 'Drink 8 glasses of water', icon: '\u{1F4A7}', color: 'blue', frequency: 'Daily' },
+  { name: 'Drink 2 liters of water', icon: '\u{1F4A7}', color: 'blue', frequency: 'Daily' },
   { name: 'Morning exercise', icon: '\u{1F3CB}\u{FE0F}', color: 'mint', frequency: 'Daily' },
   { name: 'Read for 20 minutes', icon: '\u{1F4D6}', color: 'peach', frequency: 'Daily' },
   { name: 'Sleep before 11pm', icon: '\u{1F4A4}', color: 'lavender', frequency: 'Daily' },

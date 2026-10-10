@@ -184,8 +184,8 @@ export function TasksPage({ tasks, onToggle, onDelete, onQuickAdd, onEdit }: Tas
         <EmptyState
           title={filter === 'Done' ? 'Nothing completed yet' : filter === 'Open' ? 'You are all caught up' : 'No tasks yet'}
           message={filter === 'All' ? 'Add a task from here or from Today.' : 'Switch filters to see the rest of your list.'}
-          actionLabel={filter === 'All' ? 'Add a task' : undefined}
-          onAction={filter === 'All' ? () => onQuickAdd('task') : undefined}
+          actionLabel="Add a task"
+          onAction={() => onQuickAdd('task')}
         />
       ) : (
         <section className="task-list">

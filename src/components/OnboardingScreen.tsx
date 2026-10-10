@@ -89,8 +89,8 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
           <div className="onboarding-step">
             <div className="onboarding-hero">
               <div className="onboarding-icon-large"><Flame size={32} /></div>
-              <h1>Build your first habits</h1>
-              <p>Pick a few habits to start with. You can change or add more anytime from the Habits tab.</p>
+              <h1>Build your habits</h1>
+              <p>Pick habits to start with. You can change them anytime.</p>
             </div>
             <div className="onboarding-habit-grid">
               {exampleHabits.map((habit) => {
@@ -101,6 +101,7 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
                     key={habit.name}
                     className={`onboarding-habit-pill ${isSelected ? 'selected' : ''}`}
                     onClick={() => toggleHabit(habit.name)}
+                    type="button"
                   >
                     <span className={`onboarding-habit-icon habit-${habit.color}`}><Icon size={18} /></span>
                     <span>{habit.name}</span>
