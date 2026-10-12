@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import type { PluginListenerHandle } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { CheckSquare, Plus, Sprout, Target, X } from 'lucide-react';
+import { isNative } from '@/lib/capacitor';
 import { SuggestionChips } from '@/components/SuggestionChips';
 import { GoalFields } from '@/components/GoalFields';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
@@ -53,6 +56,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
   const [goalNotes, setGoalNotes] = useState('');
   const [goalTarget, setGoalTarget] = useState(10);
   const [goalProgress, setGoalProgress] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -73,6 +77,50 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
   useEffect(() => {
     setShowMoreIdeas(false);
   }, [type]);
+
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+
+    const apply = () => {
+      const layoutHeight = window.innerHeight;
+      const visibleHeight = viewport?.height ?? layoutHeight;
+      const visibleTop = viewport?.offsetTop ?? 0;
+      const bottomGap = Math.max(0, layoutHeight - (visibleTop + visibleHeight));
+      root.style.setProperty('--keyboard-offset', `${Math.round(bottomGap)}px`);
+      root.style.setProperty('--keyboard-top', `${Math.round(visibleTop + 12)}px`);
+      if (!isNative()) setKeyboardOpen(bottomGap > 120);
+    };
+
+    apply();
+    viewport?.addEventListener('resize', apply);
+    viewport?.addEventListener('scroll', apply);
+    window.addEventListener('resize', apply);
+
+    let cancelled = false;
+    const listeners: PluginListenerHandle[] = [];
+    if (isNative()) {
+      void Promise.all([
+        Keyboard.addListener('keyboardWillShow', () => { if (!cancelled) setKeyboardOpen(true); }),
+        Keyboard.addListener('keyboardWillHide', () => { if (!cancelled) setKeyboardOpen(false); }),
+      ]).then((handles) => {
+        if (cancelled) handles.forEach((handle) => void handle.remove());
+        else listeners.push(...handles);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      viewport?.removeEventListener('resize', apply);
+      viewport?.removeEventListener('scroll', apply);
+      window.removeEventListener('resize', apply);
+      listeners.forEach((handle) => void handle.remove());
+      root.style.removeProperty('--keyboard-offset');
+      root.style.removeProperty('--keyboard-top');
+      setKeyboardOpen(false);
+    };
+  }, [open]);
 
   if (!open) return <button className="quick-add" onClick={() => onOpen?.()} aria-label="Open quick add"><Plus size={25} /></button>;
 
@@ -109,7 +157,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
       ? goalSuggestions.map((item) => ({ id: item.title, label: item.title, icon: item.icon }))
       : goodHabitSuggestions.map((item) => ({ id: item.name, label: item.name, icon: item.icon }));
 
-  return <div className="quick-add-wrap"><div className={`quick-add-menu ${type === 'habit' ? 'is-habit' : type === 'goal' ? 'is-goal' : ''}`}>
+  return <div className="quick-add-wrap" onClick={close}><div className={`quick-add-menu ${type === 'habit' ? 'is-habit' : type === 'goal' ? 'is-goal' : ''} ${keyboardOpen ? 'is-keyboard' : ''}`} onClick={(event) => event.stopPropagation()}>
     {type ? <>
       <div className="quick-add-header"><div><p className="eyebrow">NEW {type.toUpperCase()}</p><h3>{type === 'task' ? 'What needs to get done?' : type === 'habit' ? 'Add a habit' : 'Add a goal'}</h3></div><button className="icon-button" onClick={close} aria-label="Close quick add"><X size={18} /></button></div>
       {type === 'habit' ? (
@@ -208,5 +256,5 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
         <button onClick={() => setType('goal')}><span className="quick-icon quick-blue"><Target size={20} /></span><span><strong>Goal</strong><small>A milestone to reach</small></span></button>
       </div>
     </>}
-  </div><button className="quick-add close" onClick={close} aria-label="Close quick add"><X size={24} /></button></div>;
+  </div></div>;
 }
