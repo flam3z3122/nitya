@@ -3,7 +3,7 @@ import { ArrowUpRight, Flame } from 'lucide-react';
 type ProgressCardProps = { completed: number; total: number };
 
 export function ProgressCard({ completed, total }: ProgressCardProps) {
-  const percentage = Math.round((completed / total) * 100);
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
   const circumference = 2 * Math.PI * 28;
   const dashOffset = circumference * (1 - percentage / 100);
   return (

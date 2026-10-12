@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
 import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
@@ -24,10 +24,18 @@ function formatDate() { return new Date().toLocaleDateString('en-US', { weekday:
 export function PageHeader({ screen, action, userName }: { screen: Screen; action?: React.ReactNode; userName?: string }) { const meta = pageMeta[screen]; const eyebrow = screen === 'today' ? formatDate() : meta.eyebrow; const title = screen === 'today' ? `${getGreeting()}, ${userName ?? 'there'}` : meta.title; return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="header-actions">{action}</div></header>; }
 
 export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, onCheckInGoal, onMarkPrevious, onSkipPrevious, onUndoSkip, userName }: TodayProps) {
+  const [showAllHabits, setShowAllHabits] = useState(false);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showAllGoals, setShowAllGoals] = useState(false);
   const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
-  const visibleTasks = tasks.slice(0, 3);
-  const remainingTasks = Math.max(0, tasks.length - visibleTasks.length);
+  const orderedTasks = useMemo(() => {
+    const newestFirst = [...tasks].reverse();
+    return [...newestFirst.filter((task) => !task.completed), ...newestFirst.filter((task) => task.completed)];
+  }, [tasks]);
+  const displayHabits = showAllHabits ? habits : habits.slice(0, 3);
+  const displayTasks = showAllTasks ? orderedTasks : orderedTasks.slice(0, 3);
+  const displayGoals = showAllGoals ? goals : goals.slice(0, 3);
   const topHabit = habits.reduce<Habit | null>((best, habit) => (!best || habit.streak > best.streak ? habit : best), null);
   const bestStreak = topHabit?.streak ?? 0;
   const streakUnit = topHabit && isWeeklyHabit(topHabit.frequency)
@@ -73,18 +81,25 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               {habits.length === 0 ? (
                 <EmptyState title="No habits yet" message="Start a small routine you can repeat." actionLabel="Add a habit" onAction={() => onQuickAdd('habit')} />
               ) : (
-                habits.slice(0, 3).map((habit) => (
-                  <HabitCard
-                    key={habit.id}
-                    habit={habit}
-                    onToggle={(id) => void onToggleHabit(id, !habit.completed)}
-                    onEdit={onEditHabit}
-                    onMarkPrevious={(id) => void onMarkPrevious(id)}
-                    onSkipPrevious={onSkipPrevious}
-                    onUndoSkip={onUndoSkip}
-                    compact
-                  />
-                ))
+                <>
+                  {displayHabits.map((habit) => (
+                    <HabitCard
+                      key={habit.id}
+                      habit={habit}
+                      onToggle={(id) => void onToggleHabit(id, !habit.completed)}
+                      onEdit={onEditHabit}
+                      onMarkPrevious={(id) => void onMarkPrevious(id)}
+                      onSkipPrevious={onSkipPrevious}
+                      onUndoSkip={onUndoSkip}
+                      compact
+                    />
+                  ))}
+                  {habits.length > 3 && (
+                    <button className="show-more-btn" onClick={() => setShowAllHabits((value) => !value)}>
+                      {showAllHabits ? <>Show less <ChevronUp size={14} /></> : <>+{habits.length - 3} more <ChevronDown size={14} /></>}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </section>
@@ -98,8 +113,12 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                 <EmptyState title="No tasks yet" message="Add something you want to get done today." actionLabel="Add a task" onAction={() => onQuickAdd('task')} />
               ) : (
                 <>
-                  {visibleTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
-                  {remainingTasks > 0 && <button className="show-more-btn" onClick={() => onNavigate('tasks')}>+{remainingTasks} more</button>}
+                  {displayTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
+                  {orderedTasks.length > 3 && (
+                    <button className="show-more-btn" onClick={() => setShowAllTasks((value) => !value)}>
+                      {showAllTasks ? <>Show less <ChevronUp size={14} /></> : <>+{orderedTasks.length - 3} more <ChevronDown size={14} /></>}
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -110,7 +129,12 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
                 <div><p className="eyebrow">YOUR MILESTONES</p><h2>Goals</h2></div>
               </div>
               <div className="goal-list">
-                {goals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} onCheckIn={onCheckInGoal} />)}
+                {displayGoals.map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={(id) => void onDeleteGoal(id)} onEdit={onEditGoal} onCheckIn={onCheckInGoal} />)}
+                {goals.length > 3 && (
+                  <button className="show-more-btn" onClick={() => setShowAllGoals((value) => !value)}>
+                    {showAllGoals ? <>Show less <ChevronUp size={14} /></> : <>+{goals.length - 3} more <ChevronDown size={14} /></>}
+                  </button>
+                )}
               </div>
             </section>
           )}
@@ -160,6 +184,7 @@ export function TasksPage({ tasks, onToggle, onDelete, onQuickAdd, onEdit }: Tas
   const visible = tasks
     .filter((task) => filter === 'All' || (filter === 'Open' ? !task.completed : task.completed))
     .slice()
+    .reverse()
     .sort((a, b) => Number(a.completed) - Number(b.completed));
 
   return (
