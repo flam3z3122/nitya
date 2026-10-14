@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import type { QueuedMutation } from '@/lib/offlineStore';
+import { isNetworkFailure, type QueuedMutation } from '@/lib/offlineStore';
+
+export type QueueFlushResult = {
+  remaining: QueuedMutation[];
+  failure: 'network' | 'permanent' | null;
+};
 
 function isBenignConflict(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -11,7 +16,7 @@ export async function applyQueuedMutation(op: QueuedMutation): Promise<void> {
     case 'task-toggle': {
       const { error } = await supabase.from('tasks').update({
         completed: op.completed,
-        completed_at: op.completed ? new Date().toISOString() : null,
+        completed_at: op.completed ? op.completedAt ?? new Date().toISOString() : null,
       }).eq('id', op.taskId);
       if (error) throw error;
       return;
@@ -25,6 +30,7 @@ export async function applyQueuedMutation(op: QueuedMutation): Promise<void> {
         due_label: op.task.time,
         due_date: op.task.dueDate ?? null,
         completed: op.task.completed,
+        completed_at: op.task.completedAt ?? null,
       });
       if (error && !isBenignConflict(error)) throw error;
       return;
@@ -122,13 +128,16 @@ export async function applyQueuedMutation(op: QueuedMutation): Promise<void> {
   }
 }
 
-export async function flushMutationQueue(ops: QueuedMutation[]): Promise<QueuedMutation[]> {
+export async function flushMutationQueue(ops: QueuedMutation[]): Promise<QueueFlushResult> {
   for (let index = 0; index < ops.length; index += 1) {
     try {
       await applyQueuedMutation(ops[index]);
-    } catch {
-      return ops.slice(index);
+    } catch (error) {
+      return {
+        remaining: ops.slice(index),
+        failure: isNetworkFailure(error) ? 'network' : 'permanent',
+      };
     }
   }
-  return [];
+  return { remaining: [], failure: null };
 }

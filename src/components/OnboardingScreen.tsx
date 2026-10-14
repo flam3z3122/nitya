@@ -25,7 +25,7 @@ const exampleHabits: ExampleHabit[] = goodHabitSuggestions.slice(0, 6).map((h) =
 }));
 
 const tips = [
-  { title: 'Start small', text: 'Pick 1-3 habits to begin with. You can always add more later.' },
+  { title: 'Start small', text: 'Choose habits that feel manageable. You can always add more later.' },
   { title: 'Be consistent', text: 'Try to do your habits at the same time each day for the best results.' },
   { title: 'Track your streak', text: 'Check in daily to keep your streak alive and build momentum.' },
 ];
