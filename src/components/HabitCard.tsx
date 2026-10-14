@@ -149,10 +149,7 @@ export function HabitCard({
           return (
             <div className="habit-catchup">
               {skipped ? (
-                <>
-                  <span>Skipped {catchUp.label}</span>
-                  {onUndoSkip && <button type="button" onClick={() => onUndoSkip(habit.id)}>Undo</button>}
-                </>
+                <span className="habit-catchup-status">Skipped {catchUp.label}</span>
               ) : (
                 <>
                   <span>Missed {catchUp.label}</span>

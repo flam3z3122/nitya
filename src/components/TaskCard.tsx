@@ -1,6 +1,17 @@
 import { Check, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Task } from '@/types';
 import { useEffect, useRef, useState } from 'react';
+import { todayKey } from '@/lib/activity';
+
+function taskDueLabel(dueDate: string, today: string, completed: boolean): string {
+  if (!completed && dueDate < today) {
+    const date = new Date(`${dueDate}T00:00:00`);
+    return `Overdue · ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  }
+  if (dueDate === today) return 'Due today';
+  const date = new Date(`${dueDate}T00:00:00`);
+  return `Due ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+}
 
 type TaskCardProps = {
   task: Task;
@@ -10,6 +21,7 @@ type TaskCardProps = {
 };
 
 export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
+  const today = todayKey();
   const handleDelete = () => {
     if (onDelete) onDelete(task.id);
   };
@@ -58,6 +70,11 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
         <div className="task-meta">
           <span className="category-pill">{task.category}</span>
           <span className={`priority priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
+          {task.dueDate && (
+            <span className={`task-due-label${!task.completed && task.dueDate < today ? ' is-overdue' : ''}`}>
+              {taskDueLabel(task.dueDate, today, task.completed)}
+            </span>
+          )}
         </div>
       </div>
       <div className="overflow-menu" ref={ref}>

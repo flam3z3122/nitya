@@ -27,12 +27,19 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
   const [showAllHabits, setShowAllHabits] = useState(false);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [showAllGoals, setShowAllGoals] = useState(false);
-  const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const today = todayKey();
+  const todayTasks = useMemo(
+    () => tasks.filter((task) =>
+      task.dueDate === today || (!task.completed && task.dueDate !== null && task.dueDate < today)
+    ),
+    [tasks, today],
+  );
+  const completed = todayTasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
   const orderedTasks = useMemo(() => {
-    const newestFirst = [...tasks].reverse();
+    const newestFirst = [...todayTasks].reverse();
     return [...newestFirst.filter((task) => !task.completed), ...newestFirst.filter((task) => task.completed)];
-  }, [tasks]);
+  }, [todayTasks]);
   const displayHabits = showAllHabits ? habits : habits.slice(0, 3);
   const displayTasks = showAllTasks ? orderedTasks : orderedTasks.slice(0, 3);
   const displayGoals = showAllGoals ? goals : goals.slice(0, 3);
@@ -41,13 +48,12 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
   const streakUnit = topHabit && isWeeklyHabit(topHabit.frequency)
     ? (bestStreak === 1 ? 'week' : 'weeks')
     : (bestStreak === 1 ? 'day' : 'days');
-  const today = todayKey();
   return (
     <div className="page-content">
       <PageHeader screen="today" userName={userName} />
       <div className="today-layout">
         <div className="today-main">
-          <ProgressCard completed={completed} total={tasks.length + habits.length} />
+          <ProgressCard completed={completed} total={todayTasks.length + habits.length} />
           {reminders.length > 0 && (
             <section className="content-section reminder-section">
               <div className="section-heading">
@@ -109,8 +115,15 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
               <button className="text-button" onClick={() => onNavigate('tasks')}>View all <ArrowRight size={15} /></button>
             </div>
             <div className="task-list">
-              {tasks.length === 0 ? (
-                <EmptyState title="No tasks yet" message="Add something you want to get done today." actionLabel="Add a task" onAction={() => onQuickAdd('task')} />
+              {todayTasks.length === 0 ? (
+                <EmptyState
+                  title={tasks.length === 0 ? 'No tasks yet' : 'Nothing due today'}
+                  message={tasks.length === 0
+                    ? 'Add something you want to get done today.'
+                    : 'Schedule a task for today, or review undated tasks in your task list.'}
+                  actionLabel="Add a task"
+                  onAction={() => onQuickAdd('task')}
+                />
               ) : (
                 <>
                   {displayTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
