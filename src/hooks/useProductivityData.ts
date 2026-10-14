@@ -6,7 +6,7 @@ import type { QueuedMutationInput } from '@/lib/offlineStore';
 import { flushMutationQueue } from '@/lib/offlineSync';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
-type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; completed: boolean };
+type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; due_date: string | null; completed: boolean };
 type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null; created_at?: string };
 type GoalRow = { id: string; title: string; notes?: string | null; target?: number | null; progress?: number | null };
 type CompletionRow = { habit_id: string; completed_on: string };
@@ -112,6 +112,7 @@ function snapshotToState(userId: string): DataState | null {
   if (!cached) return null;
   return {
     ...cached,
+    tasks: cached.tasks.map((task) => ({ ...task, dueDate: task.dueDate ?? null })),
     loading: false,
     error: null,
     offline: typeof navigator !== 'undefined' && !navigator.onLine,
@@ -162,7 +163,7 @@ export function useProductivityData(userId: string | null) {
     }
     try {
     let [tasksResult, habitsResult, goalsResult, completionsResult, skipsResult, profileResult] = await Promise.all([
-      supabase.from('tasks').select('id, title, category, priority, due_label, completed').order('created_at', { ascending: true }),
+      supabase.from('tasks').select('id, title, category, priority, due_label, due_date, completed').order('created_at', { ascending: true }),
       supabase.from('habits').select('id, name, icon, color, frequency, reminder_time, created_at').order('created_at', { ascending: true }),
       supabase.from('goals').select('id, title, notes, target, progress').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
@@ -221,7 +222,7 @@ export function useProductivityData(userId: string | null) {
     const sessionUser = profileResult as { id: string; email: string } | null;
     const profile = sessionUser ? await ensureProfile(sessionUser.id, sessionUser.email) : cached?.profile ?? null;
     setState({
-      tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime' })),
+      tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime', dueDate: task.due_date ?? null })),
       habits: habitRows.map((habit) => {
         const history = completionRows.filter((item) => item.habit_id === habit.id).map((item) => item.completed_on);
         const skips = skipMap[habit.id] ?? [];
@@ -334,8 +335,8 @@ export function useProductivityData(userId: string | null) {
     void load();
   }, [queueChange, load]);
 
-  const createTask = useCallback(async (title: string, category = 'Personal', priority: Task['priority'] = 'Medium') => {
-    const task: Task = { id: crypto.randomUUID(), title, category, priority, time: 'Anytime', completed: false };
+  const createTask = useCallback(async (title: string, category = 'Personal', priority: Task['priority'] = 'Medium', dueDate: string | null = null) => {
+    const task: Task = { id: crypto.randomUUID(), title, category, priority, time: 'Anytime', dueDate, completed: false };
     setState((current) => ({ ...current, tasks: [...current.tasks, task] }));
     const { error } = await supabase.from('tasks').insert({
       id: task.id,
@@ -343,6 +344,7 @@ export function useProductivityData(userId: string | null) {
       category,
       priority,
       due_label: 'Anytime',
+      due_date: dueDate,
     });
     if (!error) return;
     if (isNetworkFailure(error)) {
@@ -421,12 +423,13 @@ export function useProductivityData(userId: string | null) {
     await createHabitWithDetails(name, '✦', 'mint', 'Daily');
   }, [createHabitWithDetails]);
 
-  const updateTask = useCallback(async (id: string, updates: Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>) => {
-    const payload: { title?: string; category?: string; priority?: Task['priority']; due_label?: string } = {};
+  const updateTask = useCallback(async (id: string, updates: Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time' | 'dueDate'>>) => {
+    const payload: { title?: string; category?: string; priority?: Task['priority']; due_label?: string; due_date?: string | null } = {};
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.priority !== undefined) payload.priority = updates.priority;
     if (updates.time !== undefined) payload.due_label = updates.time;
+    if (updates.dueDate !== undefined) payload.due_date = updates.dueDate;
     const { error } = await supabase.from('tasks').update(payload).eq('id', id);
     if (error) {
       if (isNetworkFailure(error)) {

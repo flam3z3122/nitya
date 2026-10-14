@@ -105,7 +105,7 @@ function App() {
 
   const saveEdit = async (id: string, updates: EditUpdates) => {
     if (editType === 'task') {
-      await data.updateTask(id, updates as Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>);
+      await data.updateTask(id, updates as Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time' | 'dueDate'>>);
     }
 
     if (editType === 'habit') {

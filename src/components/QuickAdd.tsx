@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { PluginListenerHandle } from '@capacitor/core';
-import { Keyboard } from '@capacitor/keyboard';
 import { CheckSquare, Plus, Sprout, Target, X } from 'lucide-react';
-import { isNative } from '@/lib/capacitor';
 import { SuggestionChips } from '@/components/SuggestionChips';
 import { GoalFields } from '@/components/GoalFields';
+import { TaskFields } from '@/components/TaskFields';
+import { useKeyboardViewport } from '@/hooks/useKeyboardViewport';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
 import { taskSuggestions } from '@/data/taskSuggestions';
 import { goalSuggestions } from '@/data/goalSuggestions';
@@ -17,7 +16,7 @@ type QuickAddProps = {
   intent?: AddType;
   onOpen?: () => void;
   onClose: () => void;
-  onCreateTask: (title: string, category?: string, priority?: Task['priority']) => Promise<void>;
+  onCreateTask: (title: string, category?: string, priority?: Task['priority'], dueDate?: string | null) => Promise<void>;
   onCreateHabit: (name: string, icon: string, color: string, frequency: string) => Promise<void>;
   onCreateGoal: (title: string, notes?: string, target?: number, progress?: number) => Promise<void>;
 };
@@ -53,10 +52,11 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
   const [showMoreIdeas, setShowMoreIdeas] = useState(false);
   const [taskCategory, setTaskCategory] = useState('Personal');
   const [taskPriority, setTaskPriority] = useState<Task['priority']>('Medium');
+  const [taskDueDate, setTaskDueDate] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
   const [goalTarget, setGoalTarget] = useState(10);
   const [goalProgress, setGoalProgress] = useState(0);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const keyboardOpen = useKeyboardViewport(open);
 
   useEffect(() => {
     if (!open) return;
@@ -69,6 +69,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     setShowMoreIdeas(false);
     setTaskCategory('Personal');
     setTaskPriority('Medium');
+    setTaskDueDate('');
     setGoalNotes('');
     setGoalTarget(10);
     setGoalProgress(0);
@@ -77,50 +78,6 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
   useEffect(() => {
     setShowMoreIdeas(false);
   }, [type]);
-
-  useEffect(() => {
-    if (!open) return;
-    const root = document.documentElement;
-    const viewport = window.visualViewport;
-
-    const apply = () => {
-      const layoutHeight = window.innerHeight;
-      const visibleHeight = viewport?.height ?? layoutHeight;
-      const visibleTop = viewport?.offsetTop ?? 0;
-      const bottomGap = Math.max(0, layoutHeight - (visibleTop + visibleHeight));
-      root.style.setProperty('--keyboard-offset', `${Math.round(bottomGap)}px`);
-      root.style.setProperty('--keyboard-top', `${Math.round(visibleTop + 12)}px`);
-      if (!isNative()) setKeyboardOpen(bottomGap > 120);
-    };
-
-    apply();
-    viewport?.addEventListener('resize', apply);
-    viewport?.addEventListener('scroll', apply);
-    window.addEventListener('resize', apply);
-
-    let cancelled = false;
-    const listeners: PluginListenerHandle[] = [];
-    if (isNative()) {
-      void Promise.all([
-        Keyboard.addListener('keyboardWillShow', () => { if (!cancelled) setKeyboardOpen(true); }),
-        Keyboard.addListener('keyboardWillHide', () => { if (!cancelled) setKeyboardOpen(false); }),
-      ]).then((handles) => {
-        if (cancelled) handles.forEach((handle) => void handle.remove());
-        else listeners.push(...handles);
-      });
-    }
-
-    return () => {
-      cancelled = true;
-      viewport?.removeEventListener('resize', apply);
-      viewport?.removeEventListener('scroll', apply);
-      window.removeEventListener('resize', apply);
-      listeners.forEach((handle) => void handle.remove());
-      root.style.removeProperty('--keyboard-offset');
-      root.style.removeProperty('--keyboard-top');
-      setKeyboardOpen(false);
-    };
-  }, [open]);
 
   if (!open) return <button className="quick-add" onClick={() => onOpen?.()} aria-label="Open quick add"><Plus size={25} /></button>;
 
@@ -137,7 +94,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     setSaving(true);
     setError(null);
     try {
-      if (type === 'task') await onCreateTask(next, taskCategory, taskPriority);
+      if (type === 'task') await onCreateTask(next, taskCategory, taskPriority, taskDueDate || null);
       if (type === 'habit') await onCreateHabit(next, icon, color, frequency);
       if (type === 'goal') await onCreateGoal(next, goalNotes, goalTarget, goalProgress);
       close();
@@ -177,8 +134,21 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
           onProgressChange={setGoalProgress}
           onTargetChange={setGoalTarget}
         />
+      ) : type === 'task' ? (
+        <TaskFields
+          title={value}
+          category={taskCategory}
+          priority={taskPriority}
+          dueDate={taskDueDate}
+          autoFocus
+          onTitleChange={setValue}
+          onCategoryChange={setTaskCategory}
+          onPriorityChange={setTaskPriority}
+          onDueDateChange={setTaskDueDate}
+          onTitleKeyDown={(event) => { if (event.key === 'Enter') void submit(); }}
+        />
       ) : (
-        <input autoFocus className="quick-input" value={value} onChange={(event) => setValue(event.target.value)} placeholder="e.g. Call the dentist" onKeyDown={(event) => { if (event.key === 'Enter') void submit(); }} />
+        <input autoFocus className="quick-input" value={value} onChange={(event) => setValue(event.target.value)} placeholder="e.g. Call the dentist" />
       )}
 
       {type === 'habit' && (

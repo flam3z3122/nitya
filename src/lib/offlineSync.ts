@@ -23,6 +23,7 @@ export async function applyQueuedMutation(op: QueuedMutation): Promise<void> {
         category: op.task.category,
         priority: op.task.priority,
         due_label: op.task.time,
+        due_date: op.task.dueDate ?? null,
         completed: op.task.completed,
       });
       if (error && !isBenignConflict(error)) throw error;

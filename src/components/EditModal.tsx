@@ -1,12 +1,14 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { CheckSquare, Sprout, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
 import { GoalFields } from '@/components/GoalFields';
+import { TaskFields } from '@/components/TaskFields';
+import { useKeyboardViewport } from '@/hooks/useKeyboardViewport';
 
 export type EditType = 'task' | 'habit' | 'goal';
 export type EditItem = Task | Habit | Goal;
 export type EditUpdates =
-  | Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time'>>
+  | Partial<Pick<Task, 'title' | 'category' | 'priority' | 'time' | 'dueDate'>>
   | Partial<Pick<Habit, 'name' | 'icon' | 'color' | 'frequency' | 'reminder_time'>>
   | Partial<Pick<Goal, 'title' | 'notes' | 'target' | 'progress'>>;
 
@@ -36,9 +38,6 @@ const habitIcons = [
   { value: '🌅', label: 'Start' },
 ] as const;
 const frequencies = ['Daily', 'Weekly'] as const;
-const priorities: Task['priority'][] = ['High', 'Medium', 'Low'];
-const categories = ['Personal', 'Work', 'Health', 'Study'];
-
 function isTask(item: EditItem, type: EditType | null): item is Task {
   return type === 'task';
 }
@@ -47,19 +46,12 @@ function isHabit(item: EditItem, type: EditType | null): item is Habit {
   return type === 'habit';
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="edit-field">
-      <span>{label}</span>
-      {children}
-    </div>
-  );
-}
-
 export function EditModal({ open, type, item, onClose, onSave }: EditModalProps) {
+  const keyboardOpen = useKeyboardViewport(open);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('Medium');
+  const [dueDate, setDueDate] = useState('');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('✦');
   const [color, setColor] = useState('mint');
@@ -77,6 +69,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       setTitle(item.title);
       setCategory(item.category);
       setPriority(item.priority);
+      setDueDate(item.dueDate ?? '');
     } else if (isHabit(item, type)) {
       setName(item.name);
       setIcon(item.icon);
@@ -124,6 +117,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           title: title.trim(),
           category: category.trim() || 'Personal',
           priority,
+          dueDate: dueDate || null,
         });
       } else if (type === 'habit') {
         await onSave(item.id, {
@@ -149,7 +143,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={`modal-overlay${keyboardOpen ? ' is-keyboard' : ''}`} onClick={onClose}>
       <div
         className={`edit-modal${type === 'habit' ? ' is-habit' : type === 'goal' ? ' is-goal' : ''}`}
         role="dialog"
@@ -251,45 +245,17 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
               </div>
             </>
           ) : type === 'task' ? (
-            <>
-              <Field label="Title">
-                <input
-                  className="quick-input"
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="e.g. Call the dentist"
-                  autoFocus
-                />
-              </Field>
-              <Field label="Category">
-                <div className="edit-chip-row">
-                  {categories.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`edit-choice ${category === value ? 'is-active' : ''}`}
-                      onClick={() => setCategory(value)}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Priority">
-                <div className="edit-chip-row">
-                  {priorities.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`edit-priority priority-${value.toLowerCase()} ${priority === value ? 'is-active' : ''}`}
-                      onClick={() => setPriority(value)}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            </>
+            <TaskFields
+              title={title}
+              category={category}
+              priority={priority}
+              dueDate={dueDate}
+              autoFocus
+              onTitleChange={setTitle}
+              onCategoryChange={setCategory}
+              onPriorityChange={setPriority}
+              onDueDateChange={setDueDate}
+            />
           ) : (
             <>
               <GoalFields
