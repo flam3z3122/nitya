@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, FileText, Flame, ListChecks, Loader2, LogOut, Mail, Moon, Pencil, Sparkles, Sun, TrendingUp, Trash2, X } from 'lucide-react';
 import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
-import { completedHabitsOn, currentWeekDays, dateKey, dayCompletionRate, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
+import { completedHabitsOn, currentWeekDays, dateKey, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
 import { requestReminderPermission } from '@/hooks/useReminders';
 import { isNative } from '@/lib/capacitor';
 import { registerBackIntercept } from '@/lib/backHandler';
@@ -297,9 +297,16 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
   const selectedDate = new Date(cursor.year, cursor.month, selected);
   const selectedKey = dateKey(cursor.year, cursor.month, selected);
   const doneOnDay = completedHabitsOn(habits, selectedKey);
-  const rate = dayCompletionRate(habits, selectedKey);
-  const completed = tasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const tasksOnDay = tasks.filter((task) => task.completionHistory.some((completedAt) => localDateKey(new Date(completedAt)) === selectedKey));
   const total = tasks.length + habits.length;
+  const completionRate = (key: string) => {
+    const completedTasks = tasks.filter((task) => task.completionHistory.some((completedAt) => localDateKey(new Date(completedAt)) === key)).length;
+    const completedHabits = completedHabitsOn(habits, key).length;
+    return total ? Math.round(((completedTasks + completedHabits) / total) * 100) : 0;
+  };
+  const today = todayKey();
+  const completed = tasks.filter((task) => task.completed && task.completedAt && localDateKey(new Date(task.completedAt)) === today).length
+    + habits.filter((habit) => habit.completed).length;
   const score = total ? Math.round((completed / total) * 100) : 0;
   const week = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(now);
@@ -308,7 +315,7 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
     return {
       key,
       label: date.toLocaleDateString('en-US', { weekday: 'narrow' }),
-      rate: dayCompletionRate(habits, key),
+      rate: completionRate(key),
       isToday: key === todayKey(),
     };
   });
@@ -373,7 +380,7 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
               : (
                 <button
                   key={cell.key}
-                  className={`calendar-day ${selected === cell.day ? 'selected' : ''} ${completedHabitsOn(habits, cell.key).length > 0 ? 'has-activity' : ''}`}
+                  className={`calendar-day ${selected === cell.day ? 'selected' : ''} ${completionRate(cell.key) > 0 ? 'has-activity' : ''}`}
                   onClick={() => setSelected(cell.day)}
                 >
                   {cell.day}
@@ -391,15 +398,28 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
             <div className="date-number">{selected}</div>
           </div>
           <div className="detail-progress">
-            <div><span>Completion</span><strong>{rate}%</strong></div>
-            <div className="progress-track"><div className="progress-fill" style={{ width: `${rate}%` }} /></div>
+            <div><span>Completion</span><strong>{completionRate(selectedKey)}%</strong></div>
+            <div className="progress-track"><div className="progress-fill" style={{ width: `${completionRate(selectedKey)}%` }} /></div>
           </div>
           <div className="detail-items">
+            <p className="eyebrow">TASKS</p>
+            {tasksOnDay.length === 0 ? (
+              <div className="detail-item">
+                <span className="detail-item-icon yellow"><ListChecks size={17} /></span>
+                <div><strong>No tasks completed</strong><small>Completed tasks will appear here</small></div>
+              </div>
+            ) : tasksOnDay.map((task) => (
+              <div className="detail-item" key={task.id}>
+                <span className="detail-item-icon green"><ListChecks size={17} /></span>
+                <div><strong>{task.title}</strong><small>{task.category} · {task.priority} priority</small></div>
+                <span className="detail-check"><Check size={16} /></span>
+              </div>
+            ))}
             <p className="eyebrow">HABITS</p>
             {doneOnDay.length === 0 ? (
               <div className="detail-item">
                 <span className="detail-item-icon yellow"><Flame size={17} /></span>
-                <div><strong>Nothing logged</strong><small>Check in on a habit to see it here</small></div>
+                <div><strong>No habits completed</strong><small>Completed habits will appear here</small></div>
               </div>
             ) : doneOnDay.map((habit) => (
               <div className="detail-item" key={habit.id}>
@@ -457,8 +477,30 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), 4000);
   }, []);
 
-  const saveName = async () => { if (!nameValue.trim()) return; setNameSaving(true); await onUpdateProfile({ name: nameValue.trim() }); setNameSaving(false); setEditingName(false); };
-  const setTheme = async (theme: 'Light' | 'Dark') => { setThemeOpen(false); setSavingKey('theme'); await onUpdateProfile({ theme }); setSavingKey(null); };
+  const saveName = async () => {
+    if (!nameValue.trim()) return;
+    setNameSaving(true);
+    try {
+      await onUpdateProfile({ name: nameValue.trim() });
+      setEditingName(false);
+      showToast('Name updated.', 'success');
+    } catch {
+      showToast('Name could not be saved. Please try again.', 'error');
+    } finally {
+      setNameSaving(false);
+    }
+  };
+  const setTheme = async (theme: 'Light' | 'Dark') => {
+    setThemeOpen(false);
+    setSavingKey('theme');
+    try {
+      await onUpdateProfile({ theme });
+    } catch {
+      showToast('Appearance could not be saved. Please try again.', 'error');
+    } finally {
+      setSavingKey(null);
+    }
+  };
   const toggleNotifications = async () => {
     if (isNative()) {
       showToast('Native reminders are coming soon.', 'error');
@@ -474,8 +516,13 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
       }
     }
     setSavingKey('notifications');
-    await onUpdateProfile({ notifications_enabled: next });
-    setSavingKey(null);
+    try {
+      await onUpdateProfile({ notifications_enabled: next });
+    } catch {
+      showToast('Reminder settings could not be saved. Please try again.', 'error');
+    } finally {
+      setSavingKey(null);
+    }
   };
 
   const handleDeleteAccount = async () => {

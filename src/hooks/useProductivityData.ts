@@ -6,7 +6,8 @@ import type { QueuedMutationInput } from '@/lib/offlineStore';
 import { flushMutationQueue } from '@/lib/offlineSync';
 import type { DataState, Goal, Habit, ProfileSettings, Task } from '@/types';
 
-type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; due_date: string | null; completed: boolean };
+type TaskRow = { id: string; title: string; category: string; priority: Task['priority']; due_label: string | null; due_date: string | null; completed: boolean; completed_at: string | null };
+type TaskCompletionRow = { task_id: string; completed_at: string };
 type HabitRow = { id: string; name: string; icon: string; color: Habit['color']; frequency: string; reminder_time?: string | null; created_at?: string };
 type GoalRow = { id: string; title: string; notes?: string | null; target?: number | null; progress?: number | null };
 type CompletionRow = { habit_id: string; completed_on: string };
@@ -37,7 +38,7 @@ function skipsByHabit(rows: SkipRow[]): Record<string, string[]> {
   return map;
 }
 
-const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null, offline: false, pendingSync: 0 };
+const initialState: DataState = { tasks: [], habits: [], goals: [], completions: [], profile: null, loading: true, error: null, offline: false, pendingSync: 0, syncing: false, syncFailure: null };
 
 function skipStorageKey(userId: string): string {
   return `daymark-habit-skips:${userId}`;
@@ -112,11 +113,18 @@ function snapshotToState(userId: string): DataState | null {
   if (!cached) return null;
   return {
     ...cached,
-    tasks: cached.tasks.map((task) => ({ ...task, dueDate: task.dueDate ?? null })),
+    tasks: cached.tasks.map((task) => ({
+      ...task,
+      dueDate: task.dueDate ?? null,
+      completedAt: task.completedAt ?? null,
+      completionHistory: task.completionHistory ?? (task.completedAt ? [task.completedAt] : []),
+    })),
     loading: false,
     error: null,
     offline: typeof navigator !== 'undefined' && !navigator.onLine,
     pendingSync: readQueue(userId).length,
+    syncing: false,
+    syncFailure: null,
   };
 }
 
@@ -134,6 +142,7 @@ export function useProductivityData(userId: string | null) {
 
   const load = useCallback(async () => {
     if (!userId) { setState({ ...initialState, loading: false }); return; }
+    let syncFailure = stateRef.current.syncFailure;
     const cached = snapshotToState(userId);
     if (cached) {
       setState(cached);
@@ -150,10 +159,20 @@ export function useProductivityData(userId: string | null) {
 
     if (!syncingRef.current) {
       syncingRef.current = true;
-      const leftover = await flushMutationQueue(readQueue(userId));
-      writeQueue(userId, leftover);
-      setState((current) => ({ ...current, pendingSync: leftover.length }));
-      syncingRef.current = false;
+      setState((current) => ({ ...current, syncing: true, syncFailure: null }));
+      try {
+        const result = await flushMutationQueue(readQueue(userId));
+        writeQueue(userId, result.remaining);
+        syncFailure = result.failure;
+        setState((current) => ({
+          ...current,
+          pendingSync: result.remaining.length,
+          syncing: false,
+          syncFailure,
+        }));
+      } finally {
+        syncingRef.current = false;
+      }
     }
 
     try {
@@ -162,14 +181,17 @@ export function useProductivityData(userId: string | null) {
       // Welcome task is optional while restoring a cached workspace.
     }
     try {
-    let [tasksResult, habitsResult, goalsResult, completionsResult, skipsResult, profileResult] = await Promise.all([
-      supabase.from('tasks').select('id, title, category, priority, due_label, due_date, completed').order('created_at', { ascending: true }),
+    const [tasksResult, initialHabitsResult, initialGoalsResult, completionsResult, skipsResult, profileResult, taskHistoryResult] = await Promise.all([
+      supabase.from('tasks').select('id, title, category, priority, due_label, due_date, completed, completed_at').order('created_at', { ascending: true }),
       supabase.from('habits').select('id, name, icon, color, frequency, reminder_time, created_at').order('created_at', { ascending: true }),
       supabase.from('goals').select('id, title, notes, target, progress').order('created_at', { ascending: true }),
       supabase.from('habit_completions').select('habit_id, completed_on').order('completed_on', { ascending: false }),
       supabase.from('habit_skips').select('habit_id, skipped_on'),
       supabase.auth.getSession().then(({ data }) => data.session?.user ?? null),
+      supabase.from('task_completion_history').select('task_id, completed_at').order('completed_at', { ascending: true }),
     ]);
+    let habitsResult = initialHabitsResult;
+    let goalsResult = initialGoalsResult;
     if (habitsResult.error?.message.includes('reminder_time')) {
       habitsResult = await supabase.from('habits').select('id, name, icon, color, frequency, created_at').order('created_at', { ascending: true }) as typeof habitsResult;
     }
@@ -196,13 +218,21 @@ export function useProductivityData(userId: string | null) {
         localStorage.removeItem(skipStorageKey(userId));
       }
     }
-    const failure = tasksResult.error ?? habitsResult.error ?? goalsResult.error ?? completionsResult.error;
+    const failure = tasksResult.error ?? habitsResult.error ?? goalsResult.error ?? completionsResult.error ?? skipsResult.error ?? taskHistoryResult.error;
     if (failure) {
       if (cached) {
-        setState((current) => ({ ...current, loading: false, error: null, offline: isNetworkFailure(failure), pendingSync: readQueue(userId).length }));
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error: isNetworkFailure(failure) ? null : toFriendlyError(failure.message),
+          offline: isNetworkFailure(failure),
+          pendingSync: readQueue(userId).length,
+          syncing: false,
+          syncFailure,
+        }));
         return;
       }
-      setState((current) => ({ ...current, loading: false, error: toFriendlyError(failure.message), offline: isNetworkFailure(failure) }));
+      setState((current) => ({ ...current, loading: false, error: toFriendlyError(failure.message), offline: isNetworkFailure(failure), syncing: false, syncFailure }));
       return;
     }
     if (readQueue(userId).length > 0) {
@@ -211,6 +241,8 @@ export function useProductivityData(userId: string | null) {
         loading: false,
         error: null,
         pendingSync: readQueue(userId).length,
+        syncing: false,
+        syncFailure,
       }));
       return;
     }
@@ -218,11 +250,23 @@ export function useProductivityData(userId: string | null) {
     const habitRows = (habitsResult.data ?? []) as HabitRow[];
     const goalRows = (goalsResult.data ?? []) as GoalRow[];
     const completionRows = (completionsResult.data ?? []) as CompletionRow[];
+    const taskCompletionRows = (taskHistoryResult.data ?? []) as TaskCompletionRow[];
+    const taskHistory = new Map<string, string[]>();
+    for (const item of taskCompletionRows) {
+      if (!taskHistory.has(item.task_id)) taskHistory.set(item.task_id, []);
+      taskHistory.get(item.task_id)?.push(item.completed_at);
+    }
     const today = todayKey();
     const sessionUser = profileResult as { id: string; email: string } | null;
     const profile = sessionUser ? await ensureProfile(sessionUser.id, sessionUser.email) : cached?.profile ?? null;
     setState({
-      tasks: taskRows.map((task) => ({ ...task, time: task.due_label ?? 'Anytime', dueDate: task.due_date ?? null })),
+      tasks: taskRows.map((task) => ({
+        ...task,
+        time: task.due_label ?? 'Anytime',
+        dueDate: task.due_date ?? null,
+        completedAt: task.completed_at ?? null,
+        completionHistory: taskHistory.get(task.id) ?? (task.completed_at ? [task.completed_at] : []),
+      })),
       habits: habitRows.map((habit) => {
         const history = completionRows.filter((item) => item.habit_id === habit.id).map((item) => item.completed_on);
         const skips = skipMap[habit.id] ?? [];
@@ -245,10 +289,12 @@ export function useProductivityData(userId: string | null) {
       error: null,
       offline: false,
       pendingSync: readQueue(userId).length,
+      syncing: false,
+      syncFailure,
     });
     } catch (error) {
       if (cached) {
-        setState((current) => ({ ...current, loading: false, error: null, offline: true, pendingSync: readQueue(userId).length }));
+        setState((current) => ({ ...current, loading: false, error: null, offline: true, pendingSync: readQueue(userId).length, syncing: false, syncFailure }));
         return;
       }
       setState((current) => ({
@@ -256,6 +302,8 @@ export function useProductivityData(userId: string | null) {
         loading: false,
         offline: true,
         error: toFriendlyError(isNetworkFailure(error) ? 'Connect once so we can save your workspace on this device.' : 'Please try again.'),
+        syncing: false,
+        syncFailure,
       }));
     }
   }, [userId]);
@@ -285,19 +333,38 @@ export function useProductivityData(userId: string | null) {
   }, [load]);
 
   const toggleTask = useCallback(async (id: string, completed: boolean) => {
-    setState((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, completed } : task) }));
-    const { error } = await supabase.from('tasks').update({ completed, completed_at: completed ? new Date().toISOString() : null }).eq('id', id);
+    const completedAt = completed ? new Date().toISOString() : null;
+    const previousTask = stateRef.current.tasks.find((task) => task.id === id);
+    setState((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) => task.id === id
+        ? {
+          ...task,
+          completed,
+          completedAt,
+          completionHistory: completedAt ? [...task.completionHistory, completedAt] : task.completionHistory,
+        }
+        : task),
+    }));
+    const { error } = await supabase.from('tasks').update({ completed, completed_at: completedAt }).eq('id', id);
     if (!error) return;
     if (isNetworkFailure(error)) {
-      queueChange({ kind: 'task-toggle', taskId: id, completed });
+      queueChange({ kind: 'task-toggle', taskId: id, completed, completedAt });
       return;
     }
     setState((current) => ({
       ...current,
-      tasks: current.tasks.map((task) => task.id === id ? { ...task, completed: !completed } : task),
+      tasks: current.tasks.map((task) => task.id === id
+        ? {
+          ...task,
+          completed: previousTask?.completed ?? !completed,
+          completedAt: previousTask?.completedAt ?? null,
+          completionHistory: previousTask?.completionHistory ?? task.completionHistory,
+        }
+        : task),
       error: 'That task could not be updated. Please try again.',
     }));
-  }, [queueChange]);
+  }, [queueChange, stateRef]);
 
   const toggleHabit = useCallback(async (id: string, completed: boolean) => {
     const today = todayKey();
@@ -336,7 +403,7 @@ export function useProductivityData(userId: string | null) {
   }, [queueChange, load]);
 
   const createTask = useCallback(async (title: string, category = 'Personal', priority: Task['priority'] = 'Medium', dueDate: string | null = null) => {
-    const task: Task = { id: crypto.randomUUID(), title, category, priority, time: 'Anytime', dueDate, completed: false };
+    const task: Task = { id: crypto.randomUUID(), title, category, priority, time: 'Anytime', dueDate, completed: false, completedAt: null, completionHistory: [] };
     setState((current) => ({ ...current, tasks: [...current.tasks, task] }));
     const { error } = await supabase.from('tasks').insert({
       id: task.id,
@@ -612,14 +679,17 @@ export function useProductivityData(userId: string | null) {
 
   const updateProfile = useCallback(async (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled' | 'timezone'>>) => {
     if (!userId) return;
-    setState((current) => ({ ...current, profile: current.profile ? { ...current.profile, ...updates } : current.profile }));
     const { error } = await supabase.from('profile_settings').update({ ...updates, updated_at: new Date().toISOString() }).eq('user_id', userId);
-    if (!error) return;
-    if (isNetworkFailure(error)) {
+    if (error && isNetworkFailure(error)) {
       queueChange({ kind: 'profile-update', payload: updates });
-      return;
+    } else if (error) {
+      setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' }));
+      throw new Error('Profile could not be updated. Please try again.');
     }
-    setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' }));
+    setState((current) => ({
+      ...current,
+      profile: current.profile ? { ...current.profile, ...updates } : current.profile,
+    }));
   }, [userId, queueChange]);
 
   const markPreviousPeriod = useCallback(async (id: string) => {

@@ -8,6 +8,8 @@ export type Task = {
   time: string;
   dueDate: string | null;
   completed: boolean;
+  completedAt: string | null;
+  completionHistory: string[];
 };
 
 export type Habit = {
@@ -51,4 +53,6 @@ export type DataState = {
   error: string | null;
   offline: boolean;
   pendingSync: number;
+  syncing: boolean;
+  syncFailure: 'network' | 'permanent' | null;
 };

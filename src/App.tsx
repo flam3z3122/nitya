@@ -238,7 +238,14 @@ function App() {
       />
 
       <main className="main-area">
-        <OfflineBanner offline={data.offline} pendingSync={data.pendingSync} online={online} />
+        <OfflineBanner
+          offline={data.offline}
+          pendingSync={data.pendingSync}
+          online={online}
+          syncing={data.syncing}
+          syncFailure={data.syncFailure}
+          onRetry={() => void data.reload()}
+        />
         {data.error && (data.tasks.length > 0 || data.habits.length > 0 || Boolean(data.profile)) && !data.offline && (
           <div className="data-warning">
             {data.error}

@@ -9,7 +9,7 @@ export type WorkspaceSnapshot = {
 };
 
 export type QueuedMutation =
-  | { id: string; kind: 'task-toggle'; taskId: string; completed: boolean }
+  | { id: string; kind: 'task-toggle'; taskId: string; completed: boolean; completedAt?: string | null }
   | { id: string; kind: 'task-create'; task: Task }
   | { id: string; kind: 'task-update'; taskId: string; payload: { title?: string; category?: string; priority?: Task['priority']; due_label?: string; due_date?: string | null } }
   | { id: string; kind: 'task-delete'; taskId: string }
