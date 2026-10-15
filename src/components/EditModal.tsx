@@ -3,6 +3,7 @@ import { CheckSquare, Sprout, Target, X } from 'lucide-react';
 import type { Goal, Habit, Task } from '@/types';
 import { GoalFields } from '@/components/GoalFields';
 import { TaskFields } from '@/components/TaskFields';
+import { FieldRequirement } from '@/components/FieldRequirement';
 import { useKeyboardViewport } from '@/hooks/useKeyboardViewport';
 
 export type EditType = 'task' | 'habit' | 'goal';
@@ -49,7 +50,6 @@ function isHabit(item: EditItem, type: EditType | null): item is Habit {
 export function EditModal({ open, type, item, onClose, onSave }: EditModalProps) {
   const keyboardOpen = useKeyboardViewport(open);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('Medium');
   const [dueDate, setDueDate] = useState('');
   const [name, setName] = useState('');
@@ -67,7 +67,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
     setError(null);
     if (isTask(item, type)) {
       setTitle(item.title);
-      setCategory(item.category);
       setPriority(item.priority);
       setDueDate(item.dueDate ?? '');
     } else if (isHabit(item, type)) {
@@ -115,7 +114,6 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
       if (type === 'task') {
         await onSave(item.id, {
           title: title.trim(),
-          category: category.trim() || 'Personal',
           priority,
           dueDate: dueDate || null,
         });
@@ -181,19 +179,24 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
         <form className="edit-modal-body" onSubmit={(event) => void submit(event)}>
           {type === 'habit' ? (
             <>
-              <div className="quick-habit-preview">
-                <span className={`habit-icon habit-${color}`}>{icon}</span>
-                <input
-                  className="quick-input"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="e.g. Morning walk"
-                  autoFocus
-                />
+              <div className="edit-field quick-habit-name-field">
+                <FieldRequirement label="Habit name" required />
+                <div className="quick-habit-preview">
+                  <span className={`habit-icon habit-${color}`}>{icon}</span>
+                  <input
+                    className="quick-input"
+                    required
+                    aria-required="true"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Morning walk"
+                    autoFocus
+                  />
+                </div>
               </div>
               <div className="quick-habit-details">
                 <div className="quick-icon-head">
-                  <p className="quick-field-label">Icon</p>
+                  <FieldRequirement label="Icon" />
                   <span className="quick-icon-name">{shownIcons.find((itemIcon) => itemIcon.value === icon)?.label ?? 'Custom'}</span>
                 </div>
                 <div className="quick-icon-grid">
@@ -212,7 +215,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
                 </div>
                 <div className="quick-habit-meta">
                   <div>
-                    <p className="quick-field-label">Color</p>
+                    <FieldRequirement label="Color" />
                     <div className="quick-color-row">
                       {habitColors.map((option) => (
                         <button
@@ -227,7 +230,7 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
                     </div>
                   </div>
                   <div>
-                    <p className="quick-field-label">Repeat</p>
+                    <FieldRequirement label="Repeat" />
                     <div className="quick-freq-row">
                       {frequencies.map((value) => (
                         <button
@@ -247,12 +250,10 @@ export function EditModal({ open, type, item, onClose, onSave }: EditModalProps)
           ) : type === 'task' ? (
             <TaskFields
               title={title}
-              category={category}
               priority={priority}
               dueDate={dueDate}
               autoFocus
               onTitleChange={setTitle}
-              onCategoryChange={setCategory}
               onPriorityChange={setPriority}
               onDueDateChange={setDueDate}
             />

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lu
 import { validateAuthEmail, validateAuthPassword, validatePasswordConfirm } from '@/lib/authErrors';
 import { isNative } from '@/lib/capacitor';
 import { openExternal } from '@/lib/browser';
+import { FieldRequirement } from '@/components/FieldRequirement';
 
 type AuthScreenProps = {
   mode: 'signin' | 'signup';
@@ -90,10 +91,13 @@ export function AuthScreen({
             </div>
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
               <div className="auth-field-group">
+                <FieldRequirement label="Email" required />
                 <label className={`auth-field ${fields.email ? 'is-invalid' : ''}`}>
                   <Mail size={16} />
                   <input
                     type="email"
+                    required
+                    aria-required="true"
                     value={email}
                     onChange={(event) => {
                       setEmail(event.target.value);
@@ -108,10 +112,13 @@ export function AuthScreen({
                 {fields.email && <p id="auth-email-error" className="auth-field-error">{fields.email}</p>}
               </div>
               <div className="auth-field-group">
+                <FieldRequirement label="Password" required />
                 <label className={`auth-field ${fields.password ? 'is-invalid' : ''}`}>
                   <Lock size={16} />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    required
+                    aria-required="true"
                     value={password}
                     onChange={(event) => {
                       setPassword(event.target.value);
@@ -140,10 +147,13 @@ export function AuthScreen({
               </div>
               {isSignUp && (
                 <div className="auth-field-group">
+                  <FieldRequirement label="Confirm password" required />
                   <label className={`auth-field ${fields.confirm ? 'is-invalid' : ''}`}>
                     <Lock size={16} />
                     <input
                       type={showConfirm ? 'text' : 'password'}
+                      required
+                      aria-required="true"
                       value={confirm}
                       onChange={(event) => {
                         setConfirm(event.target.value);
@@ -214,10 +224,13 @@ export function AuthScreen({
             </div>
             <form className="auth-form" onSubmit={handleReset} noValidate>
               <div className="auth-field-group">
+                <FieldRequirement label="Email" required />
                 <label className={`auth-field ${fields.resetEmail ? 'is-invalid' : ''}`}>
                   <Mail size={16} />
                   <input
                     type="email"
+                    required
+                    aria-required="true"
                     value={resetEmail}
                     onChange={(event) => {
                       setResetEmail(event.target.value);

@@ -68,12 +68,13 @@ export function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
       <div className="min-w-0 flex-1">
         <p className="task-title">{task.title}</p>
         <div className="task-meta">
-          <span className="category-pill">{task.category}</span>
           <span className={`priority priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          {task.dueDate && (
+          {task.dueDate ? (
             <span className={`task-due-label${!task.completed && task.dueDate < today ? ' is-overdue' : ''}`}>
               {taskDueLabel(task.dueDate, today, task.completed)}
             </span>
+          ) : (
+            <span className="task-due-label">No due date</span>
           )}
         </div>
       </div>

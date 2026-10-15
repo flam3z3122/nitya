@@ -1,3 +1,5 @@
+import { FieldRequirement } from '@/components/FieldRequirement';
+
 type GoalFieldsProps = {
   title: string;
   notes: string;
@@ -24,9 +26,11 @@ export function GoalFields({
   return (
     <div className="goal-fields">
       <label className="edit-field">
-        <span>Title</span>
+        <FieldRequirement label="Title" required />
         <input
           className="quick-input"
+          required
+          aria-required="true"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
           placeholder="e.g. Launch my portfolio"
@@ -34,18 +38,18 @@ export function GoalFields({
         />
       </label>
       <label className="edit-field">
-        <span>Notes</span>
+        <FieldRequirement label="Notes" />
         <textarea
           className="quick-input goal-notes-input"
           value={notes}
           onChange={(event) => onNotesChange(event.target.value)}
           placeholder="Why it matters, or the next step"
-          rows={3}
+          rows={2}
         />
       </label>
       <div className="edit-reminder-row">
         <label className="edit-field">
-          <span>Progress</span>
+          <FieldRequirement label="Progress" />
           <input
             className="quick-input"
             type="number"
@@ -56,7 +60,7 @@ export function GoalFields({
           />
         </label>
         <label className="edit-field">
-          <span>Target</span>
+          <FieldRequirement label="Target" />
           <input
             className="quick-input"
             type="number"
