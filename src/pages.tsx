@@ -8,6 +8,7 @@ import { isNative } from '@/lib/capacitor';
 import { registerBackIntercept } from '@/lib/backHandler';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
+import { FieldRequirement } from '@/components/FieldRequirement';
 import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
@@ -25,23 +26,45 @@ export function PageHeader({ screen, action, userName }: { screen: Screen; actio
 
 export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, onDeleteTask, onDeleteGoal, onNavigate, onQuickAdd, onEditTask, onEditHabit, onEditGoal, onCheckInGoal, onMarkPrevious, onSkipPrevious, onUndoSkip, userName }: TodayProps) {
   const [showAllHabits, setShowAllHabits] = useState(false);
-  const [showAllTasks, setShowAllTasks] = useState(false);
   const [showAllGoals, setShowAllGoals] = useState(false);
   const today = todayKey();
   const todayTasks = useMemo(
-    () => tasks.filter((task) =>
-      task.dueDate === today || (!task.completed && task.dueDate !== null && task.dueDate < today)
-    ),
+    () => [...tasks]
+      .reverse()
+      .filter((task) =>
+        !task.completed
+        || task.dueDate === today
+        || (task.dueDate !== null
+          && task.dueDate < today
+          && task.completedAt !== null
+          && localDateKey(new Date(task.completedAt)) === today)
+      )
+      .sort((a, b) => {
+        const rank = (task: Task) => task.completed
+          ? 4
+          : task.dueDate === null
+            ? 3
+            : task.dueDate < today
+              ? 0
+              : task.dueDate === today
+                ? 1
+                : 2;
+        const rankDifference = rank(a) - rank(b);
+        if (rankDifference !== 0) return rankDifference;
+        if (a.dueDate === null || b.dueDate === null) return 0;
+        return a.dueDate.localeCompare(b.dueDate);
+      }),
     [tasks, today],
   );
-  const completed = todayTasks.filter((task) => task.completed).length + habits.filter((habit) => habit.completed).length;
+  const completed = todayTasks.filter((task) =>
+    task.completed
+    && task.dueDate !== null
+    && task.dueDate <= today
+    && task.completedAt !== null
+    && localDateKey(new Date(task.completedAt)) === today
+  ).length + habits.filter((habit) => habit.completed).length;
   const reminders = habits.filter((habit) => habit.reminder_time).slice().sort((a, b) => (a.reminder_time ?? '').localeCompare(b.reminder_time ?? ''));
-  const orderedTasks = useMemo(() => {
-    const newestFirst = [...todayTasks].reverse();
-    return [...newestFirst.filter((task) => !task.completed), ...newestFirst.filter((task) => task.completed)];
-  }, [todayTasks]);
   const displayHabits = showAllHabits ? habits : habits.slice(0, 3);
-  const displayTasks = showAllTasks ? orderedTasks : orderedTasks.slice(0, 3);
   const displayGoals = showAllGoals ? goals : goals.slice(0, 3);
   const topHabit = habits.reduce<Habit | null>((best, habit) => (!best || habit.streak > best.streak ? habit : best), null);
   const bestStreak = topHabit?.streak ?? 0;
@@ -117,22 +140,15 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
             <div className="task-list">
               {todayTasks.length === 0 ? (
                 <EmptyState
-                  title={tasks.length === 0 ? 'No tasks yet' : 'Nothing due today'}
+                  title={tasks.length === 0 ? 'No tasks yet' : 'No open tasks'}
                   message={tasks.length === 0
                     ? 'Add something you want to get done today.'
-                    : 'Schedule a task for today, or review undated tasks in your task list.'}
+                    : 'You’re all caught up. Add a task whenever something comes up.'}
                   actionLabel="Add a task"
                   onAction={() => onQuickAdd('task')}
                 />
               ) : (
-                <>
-                  {displayTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)}
-                  {orderedTasks.length > 3 && (
-                    <button className="show-more-btn" onClick={() => setShowAllTasks((value) => !value)}>
-                      {showAllTasks ? <>Show less <ChevronUp size={14} /></> : <>+{orderedTasks.length - 3} more <ChevronDown size={14} /></>}
-                    </button>
-                  )}
-                </>
+                todayTasks.map((task) => <TaskCard key={task.id} task={task} onToggle={(id) => void onToggleTask(id, !task.completed)} onDelete={(id) => void onDeleteTask(id)} onEdit={onEditTask} />)
               )}
             </div>
           </section>
@@ -411,7 +427,7 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
             ) : tasksOnDay.map((task) => (
               <div className="detail-item" key={task.id}>
                 <span className="detail-item-icon green"><ListChecks size={17} /></span>
-                <div><strong>{task.title}</strong><small>{task.category} · {task.priority} priority</small></div>
+                <div><strong>{task.title}</strong><small>{task.priority} priority</small></div>
                 <span className="detail-check"><Check size={16} /></span>
               </div>
             ))}
@@ -545,18 +561,22 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
       <div className="avatar avatar-large">{(editingName ? nameValue || 'A' : name).split(' ').map((part) => part[0]).join('').slice(0, 2)}</div>
       <div className="profile-card-copy">
         {editingName ? (
-          <input
-            className="profile-name-input"
-            value={nameValue}
-            onChange={(e) => setNameValue(e.target.value)}
-            placeholder="Your name"
-            autoFocus
-            aria-label="Your name"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void saveName();
-              if (e.key === 'Escape') { setEditingName(false); setNameValue(profile?.name ?? ''); }
-            }}
-          />
+          <div className="profile-name-field">
+            <FieldRequirement label="Your name" required />
+            <input
+              className="profile-name-input"
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              placeholder="Your name"
+              autoFocus
+              required
+              aria-required="true"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void saveName();
+                if (e.key === 'Escape') { setEditingName(false); setNameValue(profile?.name ?? ''); }
+              }}
+            />
+          </div>
         ) : (
           <h2>{name}</h2>
         )}
@@ -619,9 +639,12 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
           </div>
           <p className="delete-modal-body">This cannot be undone. Your email, habits, tasks, goals, and reminders will be removed.</p>
           <div className="delete-confirm-field">
+            <FieldRequirement label="Confirmation" required />
             <label htmlFor="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
             <input
               id="delete-confirm"
+              required
+              aria-required="true"
               value={deleteConfirm}
               onChange={(event) => setDeleteConfirm(event.target.value)}
               autoComplete="off"

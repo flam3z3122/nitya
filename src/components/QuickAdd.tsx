@@ -3,6 +3,7 @@ import { CheckSquare, Plus, Sprout, Target, X } from 'lucide-react';
 import { SuggestionChips } from '@/components/SuggestionChips';
 import { GoalFields } from '@/components/GoalFields';
 import { TaskFields } from '@/components/TaskFields';
+import { FieldRequirement } from '@/components/FieldRequirement';
 import { useKeyboardViewport } from '@/hooks/useKeyboardViewport';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
 import { taskSuggestions } from '@/data/taskSuggestions';
@@ -50,7 +51,6 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMoreIdeas, setShowMoreIdeas] = useState(false);
-  const [taskCategory, setTaskCategory] = useState('Personal');
   const [taskPriority, setTaskPriority] = useState<Task['priority']>('Medium');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
@@ -67,7 +67,6 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     setFrequency('Daily');
     setError(null);
     setShowMoreIdeas(false);
-    setTaskCategory('Personal');
     setTaskPriority('Medium');
     setTaskDueDate('');
     setGoalNotes('');
@@ -94,7 +93,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     setSaving(true);
     setError(null);
     try {
-      if (type === 'task') await onCreateTask(next, taskCategory, taskPriority, taskDueDate || null);
+      if (type === 'task') await onCreateTask(next, 'Personal', taskPriority, taskDueDate || null);
       if (type === 'habit') await onCreateHabit(next, icon, color, frequency);
       if (type === 'goal') await onCreateGoal(next, goalNotes, goalTarget, goalProgress);
       close();
@@ -118,9 +117,12 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
     {type ? <>
       <div className="quick-add-header"><div><p className="eyebrow">NEW {type.toUpperCase()}</p><h3>{type === 'task' ? 'What needs to get done?' : type === 'habit' ? 'Add a habit' : 'Add a goal'}</h3></div><button className="icon-button" onClick={close} aria-label="Close quick add"><X size={18} /></button></div>
       {type === 'habit' ? (
-        <div className="quick-habit-preview">
-          <span className={`habit-icon habit-${color}`}>{icon}</span>
-          <input autoFocus className="quick-input" value={value} onChange={(event) => setValue(event.target.value)} placeholder="e.g. Morning walk" onKeyDown={(event) => { if (event.key === 'Enter') void submit(); }} />
+        <div className="quick-habit-fields">
+          <FieldRequirement label="Habit name" required />
+          <div className="quick-habit-preview">
+            <span className={`habit-icon habit-${color}`}>{icon}</span>
+            <input required aria-required="true" autoFocus className="quick-input" value={value} onChange={(event) => setValue(event.target.value)} placeholder="e.g. Morning walk" onKeyDown={(event) => { if (event.key === 'Enter') void submit(); }} />
+          </div>
         </div>
       ) : type === 'goal' ? (
         <GoalFields
@@ -137,12 +139,10 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
       ) : type === 'task' ? (
         <TaskFields
           title={value}
-          category={taskCategory}
           priority={taskPriority}
           dueDate={taskDueDate}
           autoFocus
           onTitleChange={setValue}
-          onCategoryChange={setTaskCategory}
           onPriorityChange={setTaskPriority}
           onDueDateChange={setTaskDueDate}
           onTitleKeyDown={(event) => { if (event.key === 'Enter') void submit(); }}
@@ -154,7 +154,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
       {type === 'habit' && (
         <div className="quick-habit-details">
           <div className="quick-icon-head">
-            <p className="quick-field-label">Icon</p>
+            <FieldRequirement label="Icon" />
             <span className="quick-icon-name">{iconOptions.find((item) => item.value === icon)?.label ?? 'Custom'}</span>
           </div>
           <div className="quick-icon-grid">
@@ -166,7 +166,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
           </div>
           <div className="quick-habit-meta">
             <div>
-              <p className="quick-field-label">Color</p>
+              <FieldRequirement label="Color" />
               <div className="quick-color-row">
                 {habitColors.map((option) => (
                   <button key={option.value} type="button" className={`quick-color-dot habit-${option.value} ${color === option.value ? 'is-active' : ''}`} onClick={() => setColor(option.value)} aria-label={option.label} title={option.label} />
@@ -174,7 +174,7 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
               </div>
             </div>
             <div>
-              <p className="quick-field-label">Repeat</p>
+              <FieldRequirement label="Repeat" />
               <div className="quick-freq-row">
                 {frequencies.map((valueFreq) => (
                   <button key={valueFreq} type="button" className={`edit-choice ${frequency === valueFreq ? 'is-active' : ''}`} onClick={() => setFrequency(valueFreq)}>{valueFreq}</button>
@@ -197,7 +197,6 @@ export function QuickAdd({ open, intent = null, onOpen, onClose, onCreateTask, o
             const task = taskSuggestions.find((item) => item.title === id);
             if (!task) return;
             setValue(task.title);
-            setTaskCategory(task.category);
             setTaskPriority(task.priority);
             return;
           }
