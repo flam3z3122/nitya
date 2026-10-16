@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import type { PermissionState } from '@capacitor/core';
 import { Navigation } from '@/components/Navigation';
 import { QuickAdd } from '@/components/QuickAdd';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -19,6 +21,8 @@ import { useReminders } from '@/hooks/useReminders';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { registerBackIntercept } from '@/lib/backHandler';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { checkNativeReminderPermission, readNativeReminderOptIn, requestNativeReminderPermission, writeNativeReminderOptIn } from '@/lib/nativeReminders';
+import { isAndroid } from '@/lib/capacitor';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { SplashLoader } from '@/components/SplashLoader';
 import type { Goal, Habit, Task } from '@/types';
@@ -28,11 +32,77 @@ function App() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickIntent, setQuickIntent] = useState<'task' | 'habit' | 'goal' | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [nativeReminderPermission, setNativeReminderPermission] = useState<PermissionState | null>(null);
+  const [nativeReminderOptIn, setNativeReminderOptIn] = useState(false);
 
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
   const online = useOnlineStatus();
-  useReminders(data.habits, data.profile?.notifications_enabled !== false, auth.user?.id ?? null);
+  const remindersEnabled = isAndroid()
+    ? Boolean(data.profile?.onboarded && data.profile.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn)
+    : data.profile?.notifications_enabled !== false;
+  const nativeReminderError = useReminders(data.habits, remindersEnabled, auth.user?.id ?? null);
+
+  useEffect(() => {
+    if (!isAndroid()) return;
+    let active = true;
+    const refreshPermission = async () => {
+      try {
+        const permission = await checkNativeReminderPermission();
+        if (active) setNativeReminderPermission(permission);
+      } catch (error) {
+        console.error('Could not check Android notification permission.', error);
+      }
+    };
+    void refreshPermission();
+    const listener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void refreshPermission();
+    });
+    return () => {
+      active = false;
+      void listener.then((handle) => handle.remove()).catch((error: unknown) => {
+        console.error('Could not remove Android app-state listener.', error);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const userId = auth.user?.id;
+    if (!isAndroid() || !userId) {
+      setNativeReminderOptIn(false);
+      return;
+    }
+    try {
+      setNativeReminderOptIn(readNativeReminderOptIn(userId));
+    } catch (error) {
+      console.error('Could not read the Android reminder preference.', error);
+      setNativeReminderOptIn(false);
+    }
+  }, [auth.user?.id]);
+
+  const saveNativeReminderOptIn = (enabled: boolean) => {
+    const userId = auth.user?.id;
+    if (!userId) return;
+    writeNativeReminderOptIn(userId, enabled);
+    setNativeReminderOptIn(enabled);
+  };
+
+  const requestNativeReminder = async () => {
+    const granted = await requestNativeReminderPermission();
+    const permission = await checkNativeReminderPermission();
+    setNativeReminderPermission(permission);
+    if (granted) saveNativeReminderOptIn(true);
+    return granted;
+  };
+
+  const completeOnboarding = async (
+    name: string,
+    selectedHabits: { name: string; icon: string; color: string; frequency: string }[],
+    notificationsEnabled?: boolean,
+  ) => {
+    await data.completeOnboarding(name, selectedHabits, notificationsEnabled);
+    if (isAndroid() && notificationsEnabled !== undefined) saveNativeReminderOptIn(notificationsEnabled);
+  };
 
   useEffect(() => {
     const mode = data.profile?.theme ?? 'Light';
@@ -143,7 +213,9 @@ function App() {
   if (data.profile && !data.profile.onboarded) {
     return (
       <OnboardingScreen
-        onComplete={data.completeOnboarding}
+        onComplete={completeOnboarding}
+        androidNative={isAndroid()}
+        onRequestReminderPermission={requestNativeReminder}
         loading={data.loading}
         error={data.error}
       />
@@ -220,6 +292,11 @@ function App() {
       <ProfilePage
         profile={data.profile}
         authEmail={auth.user?.email ?? ''}
+        nativeReminderPermission={nativeReminderPermission}
+        nativeReminderOptIn={nativeReminderOptIn}
+        nativeReminderError={nativeReminderError}
+        onRequestNativeReminderPermission={requestNativeReminder}
+        onSetNativeReminderOptIn={saveNativeReminderOptIn}
         onSignOut={() => void auth.signOut()}
         onUpdateProfile={data.updateProfile}
         onDeleteAccount={async () => {

@@ -4,7 +4,7 @@ import { HabitCard } from '@/components/HabitCard';
 import { EmptyState } from '@/components/EmptyState';
 import { completedHabitsOn, currentWeekDays, dateKey, daysInMonth, formatReminderTime, isWeeklyHabit, localDateKey, mondayOffset, shiftMonth, todayKey } from '@/lib/activity';
 import { requestReminderPermission } from '@/hooks/useReminders';
-import { isNative } from '@/lib/capacitor';
+import { isAndroid, isNative } from '@/lib/capacitor';
 import { registerBackIntercept } from '@/lib/backHandler';
 import { ProgressCard } from '@/components/ProgressCard';
 import { TaskCard } from '@/components/TaskCard';
@@ -12,6 +12,7 @@ import { FieldRequirement } from '@/components/FieldRequirement';
 import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+import type { PermissionState } from '@capacitor/core';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
 type TodayProps = { tasks: Task[]; habits: Habit[]; goals: Goal[]; onToggleTask: (id: string, completed: boolean) => Promise<void>; onToggleHabit: (id: string, completed: boolean) => Promise<void>; onDeleteTask: (id: string) => Promise<void>; onDeleteHabit: (id: string) => Promise<void>; onDeleteGoal: (id: string) => Promise<void>; onNavigate: (screen: Screen) => void; onQuickAdd: (type?: 'task' | 'habit' | 'goal') => void; onEditTask: (id: string) => void; onEditHabit: (id: string) => void; onEditGoal: (id: string) => void; onCheckInGoal: (id: string) => void; onMarkPrevious: (id: string) => void; onSkipPrevious: (id: string) => void; onUndoSkip: (id: string) => void; userName?: string };
@@ -454,6 +455,11 @@ export function ProgressPage({ tasks, habits }: { tasks: Task[]; habits: Habit[]
 type ProfilePageProps = {
   profile: ProfileSettings | null;
   authEmail: string;
+  nativeReminderPermission: PermissionState | null;
+  nativeReminderOptIn: boolean;
+  nativeReminderError: string | null;
+  onRequestNativeReminderPermission: () => Promise<boolean>;
+  onSetNativeReminderOptIn: (enabled: boolean) => void;
   onSignOut: () => void;
   onUpdateProfile: (updates: Partial<Pick<ProfileSettings, 'name' | 'theme' | 'notifications_enabled'>>) => Promise<void>;
   onDeleteAccount: () => Promise<void>;
@@ -461,7 +467,7 @@ type ProfilePageProps = {
 
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
-export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, onDeleteAccount }: ProfilePageProps) {
+export function ProfilePage({ profile, authEmail, nativeReminderPermission, nativeReminderOptIn, nativeReminderError, onRequestNativeReminderPermission, onSetNativeReminderOptIn, onSignOut, onUpdateProfile, onDeleteAccount }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(profile?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
@@ -518,22 +524,31 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     }
   };
   const toggleNotifications = async () => {
-    if (isNative()) {
+    if (isNative() && !isAndroid()) {
       showToast('Native reminders are coming soon.', 'error');
       return;
     }
-    const currentlyOn = profile?.notifications_enabled !== false;
+    const currentlyOn = isAndroid()
+      ? profile?.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn
+      : profile?.notifications_enabled !== false;
     const next = !currentlyOn;
-    if (next) {
-      const allowed = await requestReminderPermission();
-      if (!allowed) {
-        showToast('Allow notifications in your browser to get reminders.', 'error');
-        return;
-      }
-    }
     setSavingKey('notifications');
     try {
+      if (isAndroid() && next) {
+        const allowed = await onRequestNativeReminderPermission();
+        if (!allowed) {
+          showToast('Notifications were not enabled. You can allow them in Android Settings.', 'error');
+          return;
+        }
+      } else if (next) {
+        const allowed = await requestReminderPermission();
+        if (!allowed) {
+          showToast('Allow notifications in your browser to get reminders.', 'error');
+          return;
+        }
+      }
       await onUpdateProfile({ notifications_enabled: next });
+      if (isAndroid()) onSetNativeReminderOptIn(next);
     } catch {
       showToast('Reminder settings could not be saved. Please try again.', 'error');
     } finally {
@@ -607,7 +622,8 @@ export function ProfilePage({ profile, authEmail, onSignOut, onUpdateProfile, on
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
       <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : activeTheme}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
       {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${activeTheme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{activeTheme === t && <Check size={15} />}</button>)}</div>}
-      <button className="setting-row" onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">{isNative() ? 'Reminders (coming soon)' : 'Reminders'}</span>{isNative() ? <span className="setting-value">soon</span> : <span className={`toggle ${profile?.notifications_enabled !== false ? 'on' : 'off'}`}><i /></span>}</button>
+      <button className="setting-row" disabled={savingKey === 'notifications'} onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">{isAndroid() || !isNative() ? 'Reminders' : 'Reminders (coming soon)'}</span>{isNative() && !isAndroid() ? <span className="setting-value">soon</span> : <><span className="setting-value">{savingKey === 'notifications' ? 'Saving\u2026' : isAndroid() && nativeReminderPermission === 'denied' ? 'Allow in Settings' : ''}</span><span className={`toggle ${(isAndroid() ? profile?.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn : profile?.notifications_enabled !== false) ? 'on' : 'off'}`}><i /></span></>}</button>
+      {isAndroid() && nativeReminderError && <p className="auth-field-error" role="alert">{nativeReminderError}</p>}
     </div></section>
 
     <section className="settings-section"><p className="eyebrow">LEGAL</p><div className="settings-card">
