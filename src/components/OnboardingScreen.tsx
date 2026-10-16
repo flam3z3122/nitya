@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ArrowRight, Check, Dumbbell, Droplet, Flame, Moon, Sparkles, Sprout, Target, User } from 'lucide-react';
+import { ArrowRight, Bell, Check, Dumbbell, Droplet, Flame, Moon, Sparkles, Sprout, Target, User } from 'lucide-react';
 import { goodHabitSuggestions } from '@/data/habitSuggestions';
 import { FieldRequirement } from '@/components/FieldRequirement';
 
 type OnboardingScreenProps = {
-  onComplete: (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => Promise<void>;
+  onComplete: (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[], notificationsEnabled?: boolean) => Promise<void>;
+  androidNative: boolean;
+  onRequestReminderPermission: () => Promise<boolean>;
   loading: boolean;
   error: string | null;
 };
@@ -31,10 +33,12 @@ const tips = [
   { title: 'Track your streak', text: 'Check in daily to keep your streak alive and build momentum.' },
 ];
 
-export function OnboardingScreen({ onComplete, loading, error }: OnboardingScreenProps) {
+export function OnboardingScreen({ onComplete, androidNative, onRequestReminderPermission, loading, error }: OnboardingScreenProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const toggleHabit = (habitName: string) => {
     setSelected((current) => {
@@ -45,9 +49,20 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
     });
   };
 
-  const finish = () => {
+  const finish = (notificationsEnabled?: boolean) => {
     const chosen = exampleHabits.filter((h) => selected.has(h.name));
-    void onComplete(name.trim() || 'there', chosen);
+    void onComplete(name.trim() || 'there', chosen, notificationsEnabled);
+  };
+
+  const enableReminders = async () => {
+    setPermissionError(null);
+    try {
+      const granted = await onRequestReminderPermission();
+      setRemindersEnabled(granted);
+      if (!granted) setPermissionError('Notifications are off. You can enable them later in Profile and Android Settings.');
+    } catch {
+      setPermissionError('Could not enable reminders. You can try again in Profile.');
+    }
   };
 
   return (
@@ -59,7 +74,7 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
         </div>
 
         <div className="onboarding-progress">
-          {[0, 1, 2].map((i) => <div key={i} className={`onboarding-dot ${i <= step ? 'active' : ''}`} />)}
+          {Array.from({ length: androidNative ? 4 : 3 }, (_, i) => <div key={i} className={`onboarding-dot ${i <= step ? 'active' : ''}`} />)}
         </div>
 
         {step === 0 && (
@@ -148,11 +163,38 @@ export function OnboardingScreen({ onComplete, loading, error }: OnboardingScree
             {error && <p className="quick-error">{error}</p>}
             <div className="onboarding-nav">
               <button className="onboarding-back" onClick={() => setStep(1)}><ArrowRight size={15} className="rotate-180" /> Back</button>
-              <button className="auth-submit" disabled={loading} onClick={finish}>
+              <button className="auth-submit" disabled={loading} onClick={() => androidNative ? setStep(3) : finish()}>
                 <span className="button-text">{loading ? 'Setting up\u2026' : 'Start building habits'}</span>
                 <ArrowRight size={17} />
               </button>
             </div>
+          </div>
+        )}
+
+        {step === 3 && androidNative && (
+          <div className="onboarding-step">
+            <div className="onboarding-hero">
+              <div className="onboarding-icon-large"><Bell size={32} /></div>
+              <h1>A gentle daily reminder</h1>
+              <p>Get one check-in around 8:00 PM to review your habits and tasks, or add something new. You can turn reminders off in Profile anytime.</p>
+            </div>
+            {permissionError && <p className="quick-error">{permissionError}</p>}
+            {error && <p className="quick-error">{error}</p>}
+            <div className="onboarding-nav">
+              <button className="onboarding-back" onClick={() => setStep(2)}><ArrowRight size={15} className="rotate-180" /> Back</button>
+              <button className="auth-submit" disabled={loading} onClick={() => finish(remindersEnabled)}>
+                <span className="button-text">{loading ? 'Setting up\u2026' : remindersEnabled ? 'Enable reminders & start' : 'Continue without reminders'}</span>
+                <ArrowRight size={17} />
+              </button>
+            </div>
+            <button
+              type="button"
+              className="auth-forgot-link onboarding-enable-reminders"
+              disabled={loading}
+              onClick={() => remindersEnabled ? setRemindersEnabled(false) : void enableReminders()}
+            >
+              {remindersEnabled ? 'Turn off reminders' : 'Enable daily reminders'}
+            </button>
           </div>
         )}
       </div>

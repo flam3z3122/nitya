@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Habit } from '@/types';
 import { normalizeTimeKey, nowTimeKey, todayKey } from '@/lib/activity';
 import { canUseWebPush, subscribePush, unsubscribePush } from '@/lib/push';
+import { cancelNativeDailyReminder, scheduleNativeDailyReminder } from '@/lib/nativeReminders';
+import { isAndroid } from '@/lib/capacitor';
 
 const FIRED_KEY = 'daymark-reminders-fired';
 
@@ -45,7 +47,10 @@ async function showReminder(habit: Habit) {
 }
 
 export function useReminders(habits: Habit[], enabled: boolean, userId: string | null) {
+  const [nativeReminderError, setNativeReminderError] = useState<string | null>(null);
+
   useEffect(() => {
+    if (isAndroid()) return;
     if (!userId) return;
     if (!enabled) {
       void unsubscribePush(userId);
@@ -61,6 +66,7 @@ export function useReminders(habits: Habit[], enabled: boolean, userId: string |
   }, [enabled, userId]);
 
   useEffect(() => {
+    if (isAndroid()) return;
     if (!enabled || !habits.length) return;
 
     const tick = () => {
@@ -94,4 +100,26 @@ export function useReminders(habits: Habit[], enabled: boolean, userId: string |
       window.removeEventListener('focus', onVisible);
     };
   }, [habits, enabled]);
+
+  useEffect(() => {
+    if (!isAndroid()) return;
+    const sync = async () => {
+      try {
+        if (!userId || !enabled) {
+          await cancelNativeDailyReminder();
+          setNativeReminderError(null);
+          return;
+        }
+        await scheduleNativeDailyReminder();
+        setNativeReminderError(null);
+      } catch (error) {
+        console.error('Could not synchronize the daily Android reminder.', error);
+        setNativeReminderError('The daily reminder could not be scheduled. Check notification settings and reopen the app.');
+      }
+    };
+
+    void sync();
+  }, [enabled, userId]);
+
+  return nativeReminderError;
 }

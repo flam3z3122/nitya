@@ -608,8 +608,14 @@ export function useProductivityData(userId: string | null) {
     void load();
   }, [queueChange, load]);
 
-  const completeOnboarding = useCallback(async (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[]) => {
+  const completeOnboarding = useCallback(async (name: string, selectedHabits: { name: string; icon: string; color: string; frequency: string }[], notificationsEnabled?: boolean) => {
     if (!userId) return;
+    const profileUpdates = {
+      name,
+      onboarded: true,
+      ...(notificationsEnabled === undefined ? {} : { notifications_enabled: notificationsEnabled }),
+      updated_at: new Date().toISOString(),
+    };
     const newHabits = selectedHabits.map((h) => mapNewHabit({
       id: crypto.randomUUID(),
       name: h.name,
@@ -621,13 +627,13 @@ export function useProductivityData(userId: string | null) {
     }));
     setState((current) => ({
       ...current,
-      profile: current.profile ? { ...current.profile, name, onboarded: true } : current.profile,
+      profile: current.profile ? { ...current.profile, name, onboarded: true, ...(notificationsEnabled === undefined ? {} : { notifications_enabled: notificationsEnabled }) } : current.profile,
       habits: [...current.habits, ...newHabits],
     }));
-    const { error: profileError } = await supabase.from('profile_settings').update({ name, onboarded: true, updated_at: new Date().toISOString() }).eq('user_id', userId);
+    const { error: profileError } = await supabase.from('profile_settings').update(profileUpdates).eq('user_id', userId);
     if (profileError) {
       if (isNetworkFailure(profileError)) {
-        queueChange({ kind: 'profile-update', payload: { name, onboarded: true } });
+        queueChange({ kind: 'profile-update', payload: { name, onboarded: true, ...(notificationsEnabled === undefined ? {} : { notifications_enabled: notificationsEnabled }) } });
         for (const habit of newHabits) {
           queueChange({
             kind: 'habit-create',
