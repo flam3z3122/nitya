@@ -11,6 +11,7 @@
 .task-due-label.is-overdue { background: #fff0e7; color: #bd685b; }
 .dark .task-due-label { background: rgba(103,179,137,0.1); color: #a6c8ba; }
 .dark .task-due-label.is-overdue { background: rgba(198,110,93,0.14); color: #ffb3a8; }
+.ad-banner-slot { height: 50px; margin-bottom: 4px; }
 
 .edit-modal { width: min(440px, 92vw); max-height: min(88dvh, 740px); overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px 22px 20px; box-shadow: 0 20px 60px #1c282533; animation: slide-up .25s ease; }
 .edit-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
