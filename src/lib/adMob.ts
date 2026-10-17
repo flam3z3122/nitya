@@ -5,6 +5,7 @@ import {
 } from '@capacitor-community/admob';
 
 const TEST_BANNER_AD_UNIT_ID = 'ca-app-pub-3940256099942544/9214589741';
+const TEST_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-3940256099942544/1033173712';
 
 let initialization: Promise<void> | undefined;
 let bannerOperation: Promise<void> = Promise.resolve();
@@ -37,4 +38,16 @@ export function showTestBanner(): Promise<void> {
 
 export function removeBanner(): Promise<void> {
   return enqueueBannerOperation(() => AdMob.removeBanner());
+}
+
+export async function prepareTestInterstitial(): Promise<void> {
+  await initializeAdMob();
+  await AdMob.prepareInterstitial({
+    adId: TEST_INTERSTITIAL_AD_UNIT_ID,
+    isTesting: true,
+  });
+}
+
+export function showTestInterstitial(): Promise<void> {
+  return AdMob.showInterstitial({ adId: TEST_INTERSTITIAL_AD_UNIT_ID });
 }

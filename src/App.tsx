@@ -21,6 +21,7 @@ import { useReminders } from '@/hooks/useReminders';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { registerBackIntercept } from '@/lib/backHandler';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useInterstitialAds } from '@/hooks/useInterstitialAds';
 import { checkNativeReminderPermission, readNativeReminderOptIn, requestNativeReminderPermission, writeNativeReminderOptIn } from '@/lib/nativeReminders';
 import { isAndroid } from '@/lib/capacitor';
 import { OfflineBanner } from '@/components/OfflineBanner';
@@ -32,12 +33,18 @@ function App() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickIntent, setQuickIntent] = useState<'task' | 'habit' | 'goal' | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [appActive, setAppActive] = useState(true);
   const [nativeReminderPermission, setNativeReminderPermission] = useState<PermissionState | null>(null);
   const [nativeReminderOptIn, setNativeReminderOptIn] = useState(false);
 
   const auth = useAuth();
   const data = useProductivityData(auth.user?.id ?? null);
   const online = useOnlineStatus();
+  useInterstitialAds(
+    auth.user?.id ?? null,
+    !auth.loading && !data.loading && Boolean(auth.user && data.profile?.onboarded),
+    appActive,
+  );
   const remindersEnabled = isAndroid()
     ? Boolean(data.profile?.onboarded && data.profile.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn)
     : data.profile?.notifications_enabled !== false;
@@ -56,6 +63,8 @@ function App() {
     };
     void refreshPermission();
     const listener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!active) return;
+      setAppActive(isActive);
       if (isActive) void refreshPermission();
     });
     return () => {
