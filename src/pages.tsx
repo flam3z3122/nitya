@@ -12,6 +12,7 @@ import { FieldRequirement } from '@/components/FieldRequirement';
 import { GoalCard } from '@/components/GoalCard';
 import { StatsCard } from '@/components/StatsCard';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+import { BannerAd } from '@/components/BannerAd';
 import type { PermissionState } from '@capacitor/core';
 import type { Goal, Habit, ProfileSettings, Screen, Task } from '@/types';
 
@@ -74,6 +75,7 @@ export function TodayPage({ tasks, habits, goals, onToggleTask, onToggleHabit, o
     : (bestStreak === 1 ? 'day' : 'days');
   return (
     <div className="page-content">
+      <BannerAd />
       <PageHeader screen="today" userName={userName} />
       <div className="today-layout">
         <div className="today-main">
