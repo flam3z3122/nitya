@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { authenticatedFetch, supabase } from '@/lib/supabase';
 import { canCatchUpPreviousPeriod, catchUpFor, streakFromHistory, isWeeklyHabit, todayKey, weekContains, weekDateKeys } from '@/lib/activity';
 import { enqueueMutation, isNetworkFailure, readQueue, readSnapshot, writeQueue, writeSnapshot, clearOfflineData } from '@/lib/offlineStore';
 import type { QueuedMutationInput } from '@/lib/offlineStore';
@@ -780,7 +780,7 @@ export function useProductivityData(userId: string | null) {
     const token = session.session?.access_token;
     if (!token) throw new Error('You must be signed in to delete your account.');
     const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const response = await fetch(`${baseUrl}/functions/v1/delete-account`, {
+    const response = await authenticatedFetch(`${baseUrl}/functions/v1/delete-account`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({}),
