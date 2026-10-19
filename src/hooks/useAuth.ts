@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { SESSION_EXPIRED_EVENT, SESSION_EXPIRED_MESSAGE, supabase } from '@/lib/supabase';
 import { friendlyAuthMessage } from '@/lib/authErrors';
 import { WEBSITE_URL } from '@/lib/browser';
 import { isNative } from '@/lib/capacitor';
@@ -23,14 +23,40 @@ export function useAuth() {
   const [state, setState] = useState<AuthState>({ user: null, loading: true, busy: false, error: null, notice: null });
 
   useEffect(() => {
+    let sessionExpired = false;
+    const onSessionExpired = () => {
+      sessionExpired = true;
+      setState({
+        user: null,
+        loading: false,
+        busy: false,
+        error: SESSION_EXPIRED_MESSAGE,
+        notice: null,
+      });
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+
     supabase.auth.getSession().then(({ data }) => {
+      if (sessionExpired) return;
       const session = data.session;
       setState({ user: extractUser(session?.user ?? null), loading: false, busy: false, error: null, notice: null });
-    }).catch(() => {
+    }).catch((error: unknown) => {
+      if (sessionExpired) return;
+      if (import.meta.env.DEV) {
+        const details = error && typeof error === 'object'
+          ? error as { name?: string; status?: number }
+          : {};
+        console.warn('Could not restore the saved Supabase session.', {
+          name: details.name,
+          status: details.status,
+        });
+      }
       setState({ user: null, loading: false, busy: false, error: null, notice: null });
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (sessionExpired && !session) return;
+      if (session) sessionExpired = false;
       setState((current) => ({
         ...current,
         user: extractUser(session?.user ?? null),
@@ -41,7 +67,10 @@ export function useAuth() {
       }));
     });
 
-    return () => { subscription.subscription.unsubscribe(); };
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+      subscription.subscription.unsubscribe();
+    };
   }, []);
 
   const clearFeedback = useCallback(() => {
