@@ -535,6 +535,7 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
       : profile?.notifications_enabled !== false;
     const next = !currentlyOn;
     setSavingKey('notifications');
+    let failureStage = 'requesting notification permission';
     try {
       if (isAndroid() && next) {
         const allowed = await onRequestNativeReminderPermission();
@@ -549,9 +550,11 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
           return;
         }
       }
+      failureStage = 'saving reminder settings';
       await onUpdateProfile({ notifications_enabled: next });
       if (isAndroid()) onSetNativeReminderOptIn(next);
-    } catch {
+    } catch (error) {
+      console.error(`Could not enable reminders while ${failureStage}.`, error);
       showToast('Reminder settings could not be saved. Please try again.', 'error');
     } finally {
       setSavingKey(null);
