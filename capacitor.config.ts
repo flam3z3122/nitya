@@ -14,10 +14,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#f5f9f6',
       showSpinner: false,
     },
-    StatusBar: {
+    SystemBars: {
       style: 'LIGHT',
-      backgroundColor: '#4f947b',
-      overlaysWebView: false,
+      insetsHandling: 'css',
+      initialViewportFitValueHint: 'cover',
     },
   },
 };
