@@ -5,6 +5,15 @@ import { isAndroid } from '@/lib/capacitor';
 const DAILY_REMINDER_ID = 5200815;
 const DAILY_REMINDER_CHANNEL = 'daily-check-in';
 const REMINDER_OPT_IN_KEY = 'daymark-native-reminder-enabled';
+const STARTUP_PERMISSION_REQUESTED_KEY = 'daymark-native-reminder-startup-requested';
+
+export function hasRequestedNativeReminderPermissionAtStartup(): boolean {
+  return localStorage.getItem(STARTUP_PERMISSION_REQUESTED_KEY) === 'true';
+}
+
+export function markNativeReminderPermissionRequestedAtStartup(): void {
+  localStorage.setItem(STARTUP_PERMISSION_REQUESTED_KEY, 'true');
+}
 
 export function readNativeReminderOptIn(userId: string): boolean {
   return localStorage.getItem(`${REMINDER_OPT_IN_KEY}:${userId}`) === 'true';
