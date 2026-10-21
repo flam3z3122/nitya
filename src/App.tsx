@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import type { PermissionState } from '@capacitor/core';
 import { Navigation } from '@/components/Navigation';
@@ -22,7 +22,14 @@ import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { registerBackIntercept } from '@/lib/backHandler';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useInterstitialAds } from '@/hooks/useInterstitialAds';
-import { checkNativeReminderPermission, readNativeReminderOptIn, requestNativeReminderPermission, writeNativeReminderOptIn } from '@/lib/nativeReminders';
+import {
+  checkNativeReminderPermission,
+  hasRequestedNativeReminderPermissionAtStartup,
+  markNativeReminderPermissionRequestedAtStartup,
+  readNativeReminderOptIn,
+  requestNativeReminderPermission,
+  writeNativeReminderOptIn,
+} from '@/lib/nativeReminders';
 import { isAndroid } from '@/lib/capacitor';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { SplashLoader } from '@/components/SplashLoader';
@@ -89,20 +96,54 @@ function App() {
     }
   }, [auth.user?.id]);
 
-  const saveNativeReminderOptIn = (enabled: boolean) => {
+  const saveNativeReminderOptIn = useCallback((enabled: boolean) => {
     const userId = auth.user?.id;
     if (!userId) return;
     writeNativeReminderOptIn(userId, enabled);
     setNativeReminderOptIn(enabled);
-  };
+  }, [auth.user?.id]);
 
-  const requestNativeReminder = async () => {
+  const requestNativeReminder = useCallback(async () => {
     const granted = await requestNativeReminderPermission();
     const permission = await checkNativeReminderPermission();
     setNativeReminderPermission(permission);
     if (granted) saveNativeReminderOptIn(true);
     return granted;
-  };
+  }, [saveNativeReminderOptIn]);
+
+  useEffect(() => {
+    if (
+      !isAndroid()
+      || auth.loading
+      || data.loading
+      || !appActive
+      || !auth.user
+      || !data.profile?.onboarded
+      || data.profile.notifications_enabled === false
+      || nativeReminderPermission === null
+      || nativeReminderPermission === 'granted'
+      || nativeReminderOptIn
+    ) return;
+
+    try {
+      if (hasRequestedNativeReminderPermissionAtStartup()) return;
+      markNativeReminderPermissionRequestedAtStartup();
+      void requestNativeReminder().catch((error: unknown) => {
+        console.error('Could not request Android notification permission at startup.', error);
+      });
+    } catch (error) {
+      console.error('Could not record the Android notification permission request.', error);
+    }
+  }, [
+    appActive,
+    auth.loading,
+    auth.user,
+    data.loading,
+    data.profile,
+    nativeReminderOptIn,
+    nativeReminderPermission,
+    requestNativeReminder,
+  ]);
 
   const completeOnboarding = async (
     name: string,
