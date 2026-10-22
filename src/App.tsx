@@ -53,7 +53,7 @@ function App() {
     appActive,
   );
   const remindersEnabled = isAndroid()
-    ? Boolean(data.profile?.onboarded && data.profile.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn)
+    ? Boolean(data.profile?.onboarded && nativeReminderPermission === 'granted' && nativeReminderOptIn)
     : data.profile?.notifications_enabled !== false;
   const nativeReminderError = useReminders(data.habits, remindersEnabled, auth.user?.id ?? null);
 

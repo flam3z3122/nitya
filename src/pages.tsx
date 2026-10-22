@@ -531,31 +531,40 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
       return;
     }
     const currentlyOn = isAndroid()
-      ? profile?.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn
+      ? nativeReminderPermission === 'granted' && nativeReminderOptIn
       : profile?.notifications_enabled !== false;
     const next = !currentlyOn;
     setSavingKey('notifications');
-    let failureStage = 'requesting notification permission';
+    let failureStage = 'checking notification permission';
     try {
       if (isAndroid() && next) {
+        failureStage = 'requesting Android notification permission';
         const allowed = await onRequestNativeReminderPermission();
         if (!allowed) {
           showToast('Notifications were not enabled. You can allow them in Android Settings.', 'error');
           return;
         }
       } else if (next) {
+        failureStage = 'requesting browser notification permission';
         const allowed = await requestReminderPermission();
         if (!allowed) {
           showToast('Allow notifications in your browser to get reminders.', 'error');
           return;
         }
       }
-      failureStage = 'saving reminder settings';
-      await onUpdateProfile({ notifications_enabled: next });
-      if (isAndroid()) onSetNativeReminderOptIn(next);
+      if (isAndroid()) {
+        failureStage = 'saving your reminder preference on this device';
+        onSetNativeReminderOptIn(next);
+      } else {
+        failureStage = 'saving your reminder preference to your account';
+        await onUpdateProfile({ notifications_enabled: next });
+      }
     } catch (error) {
       console.error(`Could not enable reminders while ${failureStage}.`, error);
-      showToast('Reminder settings could not be saved. Please try again.', 'error');
+      const detail = error instanceof Error && error.message.trim()
+        ? error.message
+        : 'Unknown error';
+      showToast(`Reminder settings failed while ${failureStage}: ${detail}`, 'error');
     } finally {
       setSavingKey(null);
     }

@@ -690,7 +690,7 @@ export function useProductivityData(userId: string | null) {
       queueChange({ kind: 'profile-update', payload: updates });
     } else if (error) {
       setState((current) => ({ ...current, error: 'Profile could not be updated. Please try again.' }));
-      throw new Error('Profile could not be updated. Please try again.');
+      throw new Error(error.message);
     }
     setState((current) => ({
       ...current,

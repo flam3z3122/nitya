@@ -343,7 +343,7 @@ button:focus-visible { outline: 3px solid #9fd7be; outline-offset: 2px; }
 .delete-confirm-field .field-label-text { color: #71807e; }
 .dark .delete-confirm-field .field-label-text { color: var(--muted); }
 .delete-modal-actions { display: flex; gap: 10px; width: 100%; }.delete-modal-actions .button { flex: 1; justify-content: center; }
-.toast-container { position: fixed; z-index: 200; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }.toast { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 12px; font-size: 12px; font-weight: 600; box-shadow: 0 8px 28px #1c282522; animation: slide-up .25s ease; pointer-events: auto; }.toast.success { color: #3d7a5f; background: #e8f3ed; border: 1px solid #c4d9ce; }.toast.error { color: #b05a4c; background: #fff1ed; border: 1px solid #f5d5cc; }
+.toast-container { position: fixed; z-index: 200; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }.toast { display: inline-flex; align-items: center; gap: 8px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 12px 18px; border-radius: 12px; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 8px 28px #1c282522; animation: slide-up .25s ease; pointer-events: auto; }.toast.success { color: #3d7a5f; background: #e8f3ed; border: 1px solid #c4d9ce; }.toast.error { color: #b05a4c; background: #fff1ed; border: 1px solid #f5d5cc; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 .profile-card-copy { min-width: 0; flex: 1; overflow: hidden; }
 .profile-name-field { display: grid; gap: 4px; }
