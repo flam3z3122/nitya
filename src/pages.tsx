@@ -494,6 +494,9 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
   const email = profile?.email ?? authEmail ?? '';
   const themes: Array<'Light' | 'Dark'> = ['Light', 'Dark'];
   const activeTheme: 'Light' | 'Dark' = profile?.theme === 'Dark' ? 'Dark' : 'Light';
+  const notificationsOn = isAndroid()
+    ? nativeReminderPermission === 'granted' && nativeReminderOptIn
+    : profile?.notifications_enabled !== false;
 
   const showToast = useCallback((message: string, tone: 'success' | 'error') => {
     const id = Date.now() + Math.random();
@@ -530,9 +533,7 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
       showToast('Native reminders are coming soon.', 'error');
       return;
     }
-    const currentlyOn = isAndroid()
-      ? nativeReminderPermission === 'granted' && nativeReminderOptIn
-      : profile?.notifications_enabled !== false;
+    const currentlyOn = notificationsOn;
     const next = !currentlyOn;
     setSavingKey('notifications');
     let failureStage = 'checking notification permission';
@@ -636,7 +637,7 @@ export function ProfilePage({ profile, authEmail, nativeReminderPermission, nati
     <section className="settings-section"><p className="eyebrow">PREFERENCES</p><div className="settings-card">
       <button className="setting-row" onClick={() => setThemeOpen((v) => !v)}><span className="setting-icon"><Moon size={18} /></span><span className="setting-title">Appearance</span><span className="setting-value">{savingKey === 'theme' ? 'Saving\u2026' : activeTheme}</span>{themeOpen ? <ChevronRight size={16} className="setting-arrow up" /> : <ChevronRight size={16} className="setting-arrow" />}</button>
       {themeOpen && <div className="setting-options">{themes.map((t) => <button key={t} className={`setting-option ${activeTheme === t ? 'active' : ''}`} onClick={() => void setTheme(t)}><span>{t === 'Light' ? <Sun size={15} /> : <Moon size={15} />}</span>{t}{activeTheme === t && <Check size={15} />}</button>)}</div>}
-      <button className="setting-row" disabled={savingKey === 'notifications'} onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">{isAndroid() || !isNative() ? 'Reminders' : 'Reminders (coming soon)'}</span>{isNative() && !isAndroid() ? <span className="setting-value">soon</span> : <><span className="setting-value">{savingKey === 'notifications' ? 'Saving\u2026' : isAndroid() && nativeReminderPermission === 'denied' ? 'Allow in Settings' : ''}</span><span className={`toggle ${(isAndroid() ? profile?.notifications_enabled !== false && nativeReminderPermission === 'granted' && nativeReminderOptIn : profile?.notifications_enabled !== false) ? 'on' : 'off'}`}><i /></span></>}</button>
+      <button className="setting-row" disabled={savingKey === 'notifications'} onClick={() => void toggleNotifications()}><span className="setting-icon"><Bell size={18} /></span><span className="setting-title">{isAndroid() || !isNative() ? 'Reminders' : 'Reminders (coming soon)'}</span>{isNative() && !isAndroid() ? <span className="setting-value">soon</span> : <><span className="setting-value">{savingKey === 'notifications' ? 'Saving\u2026' : isAndroid() && nativeReminderPermission === 'denied' ? 'Allow in Settings' : ''}</span><span className={`toggle ${notificationsOn ? 'on' : 'off'}`}><i /></span></>}</button>
       {isAndroid() && nativeReminderError && <p className="auth-field-error" role="alert">{nativeReminderError}</p>}
     </div></section>
 

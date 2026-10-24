@@ -119,7 +119,6 @@ function App() {
       || !appActive
       || !auth.user
       || !data.profile?.onboarded
-      || data.profile.notifications_enabled === false
       || nativeReminderPermission === null
       || nativeReminderPermission === 'granted'
       || nativeReminderOptIn
