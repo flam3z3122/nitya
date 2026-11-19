@@ -37,3 +37,24 @@ android/app/src/main/assets/
 # Deployment and Secret files
 google-services.json
 firebase.json
+# Environment-specific configuration
+.env.*
+!.env.example
+!.env.*.example
+!.env.sample
+
+# Supabase local metadata
+supabase/.temp/
+supabase/.branches/
+.supabase/
+
+# Signing keys and private configuration
+**/keystore.properties
+**/*.keystore
+**/*.p12
+**/*.pfx
+**/*.pem
+**/*.key
+**/*service-account*.json
+**/*serviceAccount*.json
+**/firebase-adminsdk-*.json

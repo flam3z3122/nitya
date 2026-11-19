@@ -104,10 +104,6 @@ async function ensureProfile(userId: string, email: string): Promise<ProfileSett
   return null;
 }
 
-async function ensureWelcomeTask(): Promise<void> {
-  // Removed Welcome Task
-}
-
 function snapshotToState(userId: string): DataState | null {
   const cached = readSnapshot(userId);
   if (!cached) return null;
@@ -175,11 +171,6 @@ export function useProductivityData(userId: string | null) {
       }
     }
 
-    try {
-      // await ensureWelcomeTask();
-    } catch {
-      // Welcome task is optional while restoring a cached workspace.
-    }
     try {
     const [tasksResult, initialHabitsResult, initialGoalsResult, completionsResult, skipsResult, profileResult, taskHistoryResult] = await Promise.all([
       supabase.from('tasks').select('id, title, category, priority, due_label, due_date, completed, completed_at').order('created_at', { ascending: true }),
