@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { AdMob, BannerAdPluginEvents } from '@capacitor-community/admob';
 import { isAndroid } from '@/lib/capacitor';
-import { initializeAdMob, removeBanner, showTestBanner } from '@/lib/adMob';
+import { initializeAdMob, removeBanner, showBanner } from '@/lib/adMob';
 
 export function BannerAd() {
   const [reserveSpace, setReserveSpace] = useState(false);
@@ -62,7 +62,7 @@ export function BannerAd() {
 
         if (cancelled) return;
         bannerLoadStarted = true;
-        await showTestBanner();
+        await showBanner();
       } catch (error) {
         await removeListeners();
         if (bannerLoadStarted) {

@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+def testAdMobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def productionAdMobAppId = 'ca-app-pub-7095801339633962~9999879524'
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
@@ -13,6 +16,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 16
         versionName "1.9"
+        manifestPlaceholders = [ADMOB_APP_ID: testAdMobAppId]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -29,11 +33,15 @@ android {
         }
     }
     buildTypes {
+        debug {
+            manifestPlaceholders = [ADMOB_APP_ID: testAdMobAppId]
+        }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+            manifestPlaceholders = [ADMOB_APP_ID: productionAdMobAppId]
         }
     }
 }

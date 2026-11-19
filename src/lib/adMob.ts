@@ -6,6 +6,11 @@ import {
 
 const TEST_BANNER_AD_UNIT_ID = 'ca-app-pub-3940256099942544/9214589741';
 const TEST_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-3940256099942544/1033173712';
+const PRODUCTION_BANNER_AD_UNIT_ID = 'ca-app-pub-7095801339633962/3953647241';
+const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-7095801339633962/6200683391';
+const IS_ADMOB_TEST_MODE = import.meta.env.MODE !== 'production';
+const BANNER_AD_UNIT_ID = IS_ADMOB_TEST_MODE ? TEST_BANNER_AD_UNIT_ID : PRODUCTION_BANNER_AD_UNIT_ID;
+const INTERSTITIAL_AD_UNIT_ID = IS_ADMOB_TEST_MODE ? TEST_INTERSTITIAL_AD_UNIT_ID : PRODUCTION_INTERSTITIAL_AD_UNIT_ID;
 
 let initialization: Promise<void> | undefined;
 let bannerOperation: Promise<void> = Promise.resolve();
@@ -17,21 +22,21 @@ function enqueueBannerOperation(operation: () => Promise<void>): Promise<void> {
 }
 
 export function initializeAdMob(): Promise<void> {
-  initialization ??= AdMob.initialize({ initializeForTesting: true }).catch((error: unknown) => {
+  initialization ??= AdMob.initialize({ initializeForTesting: IS_ADMOB_TEST_MODE }).catch((error: unknown) => {
     initialization = undefined;
     throw error;
   });
   return initialization;
 }
 
-export function showTestBanner(): Promise<void> {
+export function showBanner(): Promise<void> {
   return enqueueBannerOperation(async () => {
     await initializeAdMob();
     await AdMob.showBanner({
-      adId: TEST_BANNER_AD_UNIT_ID,
+      adId: BANNER_AD_UNIT_ID,
       adSize: BannerAdSize.BANNER,
       position: BannerAdPosition.TOP_CENTER,
-      isTesting: true,
+      isTesting: IS_ADMOB_TEST_MODE,
     });
   });
 }
@@ -40,14 +45,14 @@ export function removeBanner(): Promise<void> {
   return enqueueBannerOperation(() => AdMob.removeBanner());
 }
 
-export async function prepareTestInterstitial(): Promise<void> {
+export async function prepareInterstitial(): Promise<void> {
   await initializeAdMob();
   await AdMob.prepareInterstitial({
-    adId: TEST_INTERSTITIAL_AD_UNIT_ID,
-    isTesting: true,
+    adId: INTERSTITIAL_AD_UNIT_ID,
+    isTesting: IS_ADMOB_TEST_MODE,
   });
 }
 
-export function showTestInterstitial(): Promise<void> {
-  return AdMob.showInterstitial({ adId: TEST_INTERSTITIAL_AD_UNIT_ID });
+export function showInterstitial(): Promise<void> {
+  return AdMob.showInterstitial({ adId: INTERSTITIAL_AD_UNIT_ID });
 }

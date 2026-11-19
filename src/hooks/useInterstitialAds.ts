@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { AdMob, InterstitialAdPluginEvents } from '@capacitor-community/admob';
 import { isAndroid } from '@/lib/capacitor';
-import { prepareTestInterstitial, showTestInterstitial } from '@/lib/adMob';
+import { prepareInterstitial, showInterstitial } from '@/lib/adMob';
 
 const INSTALL_SEEN_KEY = 'nitya.admob.interstitial.install-seen.v1';
 const USAGE_KEY_PREFIX = 'nitya.admob.interstitial.usage.v1.';
@@ -189,7 +189,7 @@ export function useInterstitialAds(
 
     adFlowInFlightRef.current = true;
     try {
-      await prepareTestInterstitial();
+      await prepareInterstitial();
       if (!isCurrentVisit() || !navigator.onLine) return;
 
       const eligibilityTime = new Date();
@@ -252,7 +252,7 @@ export function useInterstitialAds(
       }
 
       showPendingRef.current = true;
-      await showTestInterstitial();
+        await showInterstitial();
     } catch (error) {
       console.warn('AdMob interstitial is unavailable.', error);
       showPendingRef.current = false;
